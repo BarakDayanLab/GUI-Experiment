@@ -11,6 +11,8 @@ import matplotlib
 from PID import PID
 from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
+from scipy.optimize import minimize
+
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
 
@@ -305,6 +307,25 @@ class Cavity_lock_GUI(Scope_GUI):
         else: # lock with RedPitaya
             self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
             self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
+
+    def heatResonator(self, currentToSupply):
+        '''
+        :param currentToSupply: the current sent to the power supply in amperes
+        :return:
+        '''
+        #change current to the power supply
+        self.updateHMP4040Current(currentToSupply)
+        #get transmission measurement from re pitaya
+        ODTransmission = np.sum(self.Cavity_Transmission_Data)
+        return ODTransmission
+
+    def lockODResonatorByTransmission(self, x0=0.5):
+        '''
+
+        :return:
+        '''
+        self.optimizeResult = minimize(self.heatResonator, x0, method='Nelder-Mead', tol=1e-3)
+
 
 
 if __name__ == "__main__":
