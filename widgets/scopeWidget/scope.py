@@ -77,7 +77,7 @@ class Scope_GUI(QuantumWidget):
         self.Avg_num = [int(self.spinBox_averaging_ch1.value()), int(self.spinBox_averaging_ch2.value())]
         self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
         self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
-        self.avg_indx = 0
+        self.Avg_indx = 0
 
     def updateTriggerDelay(self):
         t = float(self.doubleSpinBox_triggerDelay.value())  # ms
@@ -262,7 +262,7 @@ class Scope_GUI(QuantumWidget):
         y_scale = [float(self.doubleSpinBox_VtoDiv_ch1.text()), float(self.doubleSpinBox_VtoDiv_ch2.text())]
         y_offset = [float(self.doubleSpinBox_VOffset_ch1.text()), float(self.doubleSpinBox_VOffset_ch2.text())]
         # Create two array of ticks, for the two scales of the two channels
-        y_ticks = [np.arange(y_offset[i] - y_scale[i] * 5[i], y_offset[i] + y_scale[i] * 5, y_scale[i])
+        y_ticks = [np.arange(y_offset[i] - y_scale[i] * 5, y_offset[i] + y_scale[i] * 5, y_scale[i])
                    for i in range(len(y_scale))]
 
         # ----------- text box -----------

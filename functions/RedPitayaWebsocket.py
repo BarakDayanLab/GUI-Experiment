@@ -218,6 +218,14 @@ class Redpitaya:
         self.new_parameters['SOUR%d_FUNC' % output] = {'value': str(function)}
         # self.print('Output %d changed to %s.' % (int(output), functionsMap[function]))
 
+
+    def set_outputTrigger(self, output = 1, trigger = 1):
+        # print('set_outputFunction',output,function)
+        triggerMap = ['Internal', 'External Negative edge', 'External Negative edge']
+        if type(trigger) is str and trigger in triggerMap: trigger = triggerMap.index(trigger) + 1
+        self.new_parameters['SOUR%d_TRIG_SOUR' % output] = {'value': str(trigger)}
+        # self.print('Output %d changed to %s.' % (int(output), functionsMap[function]))
+
     def set_outputAmplitude(self, output = 1, v = 0):  # Set output amplitude, in volts.
         if v > 5.01 or v < -5.01:
             self.print("Warning! output voltage out of range!", color = 'red')

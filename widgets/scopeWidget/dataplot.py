@@ -15,7 +15,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+_COLORS = ['b','g','r','c', 'm','y']
 def gaussian(x, amplitude, mean, stddev):
     return amplitude * np.exp(-((x - mean) ** 2 / 2 / stddev ** 2))
 
@@ -38,7 +38,7 @@ class PlotWindow(QDialog):
 
         for i in range(1,2):
             self.axes.append(self.axes[0].twinx())
-        for i in range(2): # in principle, hold 4 places for lines. With good coding, this is not neccessary
+        for i in range(2): # in principle, hold 2 places for lines. With good coding, this is not neccessary
             line1, = self.axes[i].plot([1], [1], 'r-')  # Returns a tuple of line objects, thus the comma
             self.lines.append(line1)
 
@@ -102,15 +102,16 @@ class PlotWindow(QDialog):
             self.axes[i] = self.axes[0].twinx()
 
         for i, el in enumerate(np.array(y_data)):
-            line1, = self.axes[i].plot(x_data, el, label=kwargs['labels'][i])  # Returns a tuple of line objects, thus the comma
+            line1, = self.axes[i].plot(x_data, el, label=kwargs['labels'][i], color = _COLORS[i])  # Returns a tuple of line objects, thus the comma
             self.lines[i] = line1
 
         # ------ legend ----------------
         if 'legend' in kwargs and kwargs['legend'] or 'legend' not in kwargs: # by default, legend on
-            self.axes[0].legend(loc = 'upper right') # defualt
-            if 'legend_loc' in kwargs: self.axes[0].legend(loc = kwargs['legend_loc'])
+            for i, ax in enumerate(self.axes):
+                self.axes[i].legend(loc = 'upper right') # defualt
+                if 'legend_loc' in kwargs: self.axes[i].legend(loc = kwargs['legend_loc'])
 
-        # --------  Secondary scale ---------
+        # --------  Secondary X scale ---------
         if 'secondary_x_axis_func' in kwargs and kwargs['secondary_x_axis_func']:
             sec_ax = self.axes[0].secondary_xaxis('top',xlabel=kwargs['secondary_x_axis_label'], functions = kwargs['secondary_x_axis_func'])
 
@@ -120,17 +121,17 @@ class PlotWindow(QDialog):
                 self.axes[0].set_xticks(kwargs['x_ticks'])
             if 'y_ticks' in kwargs:
                 y_ticks = kwargs['y_ticks']
-                for i, ticks in y_ticks:
-                    self.axes[i].set_yticks(ticks)
+                for i, ticks in enumerate(y_ticks):
+                    self.axes[i].set_yticks(y_ticks[i])
             self.axes[0].grid()
 
-        # ------ limits ----------------
-        for i, ax in enumerate(self.axes):
-            if autoscale:
-                self.axes[i].set_ylim(min(y_data[i][0]), max(y_data[i][0]) * 1.1)
-            elif 'y_ticks' in kwargs:
+        # ------ limits ----------------        for i, ax in enumerate(self.axes):
+        if autoscale:
+            self.axes[i].set_ylim(min(y_data[i][0]), max(y_data[i][0]) * 1.1)
+        elif 'y_ticks' in kwargs:
+            for i, ticks in enumerate(y_ticks):
                 self.axes[i].set_ylim(kwargs['y_ticks'][i][0], kwargs['y_ticks'][i][-1])
-            self.axes[0].set_xlim(x_data[0], x_data[-1])
+        self.axes[0].set_xlim(x_data[0], x_data[-1])
 
         self.axes[0].set_ylabel('Voltage [V]')
         self.axes[0].set_xlabel('Time [ms]')
@@ -144,7 +145,7 @@ class PlotWindow(QDialog):
         # first - check we have what we need
         if 'scatter_x_data' and 'scatter_y_data' in kwargs and kwargs['scatter_x_data'] != [] and kwargs['scatter_y_data'] != []:
             x_data, y_data = kwargs['scatter_x_data'], kwargs['scatter_y_data']
-
+            #print(x_data, y_data)
             #------- First, handle scatter -------
             # if scatter don't exist - scatter for the first time
             if not self.scatter:# or  (self.scatter is not None and len() != len(x_data) ):

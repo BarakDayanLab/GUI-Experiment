@@ -252,6 +252,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -280,7 +281,7 @@
            <double>1.000000000000000</double>
           </property>
           <property name="value">
-           <double>0.100000000000000</double>
+           <double>0.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -289,6 +290,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -314,7 +316,7 @@
            <double>0.200000000000000</double>
           </property>
           <property name="value">
-           <double>0.010000000000000</double>
+           <double>0.050000000000000</double>
           </property>
          </widget>
         </item>
@@ -372,6 +374,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -397,6 +400,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -422,6 +426,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -528,7 +533,7 @@
            <double>0.200000000000000</double>
           </property>
           <property name="value">
-           <double>0.020000000000000</double>
+           <double>0.040000000000000</double>
           </property>
          </widget>
         </item>
@@ -564,7 +569,7 @@
            </font>
           </property>
           <property name="value">
-           <double>0.080000000000000</double>
+           <double>2.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -756,6 +761,7 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -769,11 +775,12 @@
           <property name="font">
            <font>
             <pointsize>10</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
           <property name="text">
-           <string>CH12</string>
+           <string>CH2</string>
           </property>
          </widget>
         </item>
@@ -794,7 +801,7 @@
            <double>0.050000000000000</double>
           </property>
           <property name="value">
-           <double>0.100000000000000</double>
+           <double>0.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -830,7 +837,7 @@
            <double>0.200000000000000</double>
           </property>
           <property name="value">
-           <double>0.020000000000000</double>
+           <double>0.060000000000000</double>
           </property>
          </widget>
         </item>

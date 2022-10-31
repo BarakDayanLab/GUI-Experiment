@@ -136,7 +136,7 @@ class OD_GUI(Scope_GUI):
         # It seems RedPitaya tends to send the same data more than once. That is, although it has not been triggered,
         # scope will send current data as fast as it can.
         # Following lines aim to prevent unnecessary work
-        previousDataIndex = (self.avg_indx - 1) % self.Avg_num
+        previousDataIndex = (self.Avg_indx - 1) % self.Avg_num[0]
         # print(data[0])
         # print(self.Rb_lines_Data[previousDataIndex])
         if not self.rp.firstRun and np.array_equal(self.Rb_lines_Data[previousDataIndex], data[0]) and np.array_equal(self.Cavity_Transmission_Data[previousDataIndex], data[1]):
@@ -147,9 +147,10 @@ class OD_GUI(Scope_GUI):
         if redraw:
             self.scope_parameters.update(parameters)  # keep all the parameters. we need them.
             self.CHsUpdated = False
-        self.Rb_lines_Data[self.avg_indx] = data[0]  # Insert new data
-        self.Cavity_Transmission_Data[self.avg_indx] = data[1]  # Insert new data
-        self.avg_indx = (self.avg_indx + 1) % self.Avg_num
+
+        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = data[0]  # Insert new data
+        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] = data[1]  # Insert new data
+        self.Avg_indx = self.Avg_indx + 1
 
         # ---------------- Average data  ----------------
         # Calculate avarage data and find peaks position (indx) and properties:
@@ -160,7 +161,10 @@ class OD_GUI(Scope_GUI):
         if self.checkBox_Cavity_transm.isChecked():
             self.Cavity_Transmission_Avg_Data = np.average(self.Cavity_Transmission_Data, axis=0)
             Avg_data = Avg_data + [self.Cavity_Transmission_Avg_Data]
+
         # ------- Scales -------
+
+
         # At this point we assume we have a corrcet calibration polynomial in @self.index_to_freq
         # Set Values for x-axis frequency:
 
@@ -169,9 +173,13 @@ class OD_GUI(Scope_GUI):
         # time-scale
         x_axis = np.linspace(0, time_scale * 10, num=int(self.scope_parameters['OSC_DATA_SIZE']['value']))
         x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
-        y_scale = float(self.doubleSpinBox_VtoDiv.text())
-        y_offset = float(self.doubleSpinBox_VOffset.text())
-        y_ticks = np.arange(y_offset - y_scale * 5, y_offset + y_scale * 5, y_scale)
+
+        # ----------- Y scaling and offset -----------
+        y_scale = [float(self.doubleSpinBox_VtoDiv_ch1.text()), float(self.doubleSpinBox_VtoDiv_ch2.text())]
+        y_offset = [float(self.doubleSpinBox_VOffset_ch1.text()), float(self.doubleSpinBox_VOffset_ch2.text())]
+        # Create two array of ticks, for the two scales of the two channels
+        y_ticks = [np.arange(y_offset[i] - y_scale[i] * 5, y_offset[i] + y_scale[i] * 5, y_scale[i])
+                   for i in range(len(y_scale))]
 
         # ----------- Calculate OD -----------
         text = None

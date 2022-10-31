@@ -45,6 +45,7 @@ class Pgc_gui (QuantumWidget):
         # Connects:
         self.pushButton_PGC_Connect.clicked.connect(self.PGC_connect_worker)
         self.checkBox_plotContinuous.clicked.connect(self.take_continuous_pictures_worker)
+        self.checkBox_plotContinuous.clicked.connect(self.take_continuous_pictures_worker)
         self.pushButton_takeBackground.clicked.connect(self.take_new_background_worker)
         # self.pushButton_updateSnapTime.clicked.connect(self.update_Snaptime)
         # self.pushButton_update_dA.clicked.connect(self.update_dA)

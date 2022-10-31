@@ -10,8 +10,9 @@ from PyQt5.QtWidgets import QApplication
 import matplotlib
 from PID import PID
 from PyQt5.QtCore import QThreadPool
-
+from functions.HMP4040Control import HMP4040Visa
 _CONNECTION_ATTMPTS = 2
+_HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
 
 try:
     from functions.cavity_lock.cavity_lock import CavityLock
@@ -29,13 +30,17 @@ class Cavity_lock_GUI(Scope_GUI):
             self.Parent = Parent
 
         self.listenForMouseClickCID = None
-        self.pid = PID(1, 0,0,setpoint = 0, output_limits=(0, 10))
+        self.pid = PID(1, 0,0,setpoint = 0, output_limits=(0, 3.3))
         self.lockOn = False
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
         self.indx_to_freq = [0]
+
+        # ----------- HMP4040 Control -----------
+        self.HMP4040 = HMP4040Visa(port = 'ASRL7::INSTR')
+        self.HMP4040.setOutput(4)
 
         # ----------- Velocity Intrument -----------
         # try:
@@ -62,7 +67,6 @@ class Cavity_lock_GUI(Scope_GUI):
         uic.loadUi(ui_outputs, self.frame_4) # place outputs in frame 4
         self.connectOutputsButtonsAndSpinboxes()
 
-
     def connectOutputsButtonsAndSpinboxes(self):
         # PID spniboxes
         self.outputsFrame.doubleSpinBox_P.valueChanged.connect(self.updatePID)
@@ -83,6 +87,21 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_ch2OutOffset.valueChanged.connect(self.updateOutputChannels)
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
         self.outputsFrame.checkBox_ch2OuputState.stateChanged.connect(self.updateOutputChannels)
+
+        # HMP4040
+        self.outputsFrame.doubleSpinBox_outIHalogen.valueChanged.connect(self.updateHMP4040Current)
+        self.outputsFrame.doubleSpinBox_outVHalogen.valueChanged.connect(self.updateHMP4040Voltage)
+        self.outputsFrame.checkBox_halogenOuputState.stateChanged.connect(self.updateHMP4040State)
+
+
+    def updateHMP4040Current(self):
+        self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen.value())
+    def updateHMP4040Voltage(self):
+        self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen.value())
+        self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
+    def updateHMP4040State(self): self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
+
+
 
     def updateVelocityWavelength(self):
         v = self.doubleSpinBox_velocityWavelength.value()
@@ -142,9 +161,10 @@ class Cavity_lock_GUI(Scope_GUI):
         # Run over all current selected peaks; Assume the 1st selected peak belongs to 1st channel etc.
         # Find the closest peak to the selected one in the relevant channel; update.
         for i, curSelectedPeak in enumerate(self.selectedPeaksXY):
-            nearestPeakIndex = spatial.KDTree(peaksLocation[i]).query(curSelectedPeak)[1]  # [0] would have given us distance
-            nearestPeakLocation = peaksLocation[i][nearestPeakIndex]
-            self.selectedPeaksXY[i] = np.array(nearestPeakLocation)  # update location of selected peak to BE the nearest peak
+            if len(peaksLocation[i]) > 0:
+                nearestPeakIndex = spatial.KDTree(peaksLocation[i]).query(curSelectedPeak)[1]  # [0] would have given us distance
+                nearestPeakLocation = peaksLocation[i][nearestPeakIndex]
+                self.selectedPeaksXY[i] = np.array(nearestPeakLocation)  # update location of selected peak to BE the nearest peak
 
     # Never call this method. this is called by RedPitaya
     def update_scope(self, data, parameters):
@@ -164,9 +184,9 @@ class Cavity_lock_GUI(Scope_GUI):
         if redraw:
             self.scope_parameters = parameters  # keep all the parameters. we need them.
             self.CHsUpdated = False
-        self.Rb_lines_Data[self.avg_indx] = data[0]  # Insert new data
-        self.Cavity_Transmission_Data[self.avg_indx] = data[1]  # Insert new data
-        self.avg_indx = (self.avg_indx + 1) % self.Avg_num
+        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = data[0]  # Insert new data
+        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] = data[1]  # Insert new data
+        self.Avg_indx = self.Avg_indx + 1
         self.changedOutputs = False
 
         # ---------------- Gaussian smoothing algo (Tal's)  ----------------
@@ -182,12 +202,12 @@ class Cavity_lock_GUI(Scope_GUI):
         # if (sum(Squared_Rb_lines_Data) < RB_LINES_JUMP_THRESHOLD) & (len([x for x in np.absolute(data[0]) if x > 0.01]) > 2): #throws data when jump in channel occurs (due to turn off of the laser)
         #     # print(max(np.absolute(data[0])))
         #     print(sum(Squared_Rb_lines_Data))
-        #     self.Rb_lines_Data[self.avg_indx_CH1] = Squared_Rb_lines_Data  # Insert new data
-        #     self.avg_indx_CH1 = (self.avg_indx_CH1 + 1) % self.Avg_num_CH1
+        #     self.Rb_lines_Data[self.Avg_indx] = Squared_Rb_lines_Data  # Insert new data
+        #     self.Avg_indx = (self.Avg_indx + 1) % self.Avg_num_CH1
         # # if (max(-np.array(data[1])) > 0.01) & (sum(np.array(data[1])) > -7):
         # # print(sum(np.array(data[1])))
-        # self.Cavity_Transmission_Data[self.avg_indx_CH2] = data[1]  # Insert new data
-        # self.avg_indx_CH2 = (self.avg_indx_CH2 + 1) % self.Avg_num_CH2
+        # self.Cavity_Transmission_Data[self.Avg_indx] = data[1]  # Insert new data
+        # self.Avg_indx = (self.Avg_indx + 1) % self.Avg_num_CH2
         # self.changedOutputs = False
 
         # ---------------- Average data  ----------------
@@ -230,14 +250,14 @@ class Cavity_lock_GUI(Scope_GUI):
             return (t - Rb_peaks[0]) * indx_to_freq
         def freqToTimeScale(f):
             print(indx_to_freq)
-
             return f / indx_to_freq + Rb_peaks[0]
 
-
-        y_scale = float(self.doubleSpinBox_VtoDiv.text())
-        y_offset = float(self.doubleSpinBox_VOffset.text())
-        y_ticks = np.arange(y_offset - y_scale * 5, y_offset + y_scale * 5, y_scale)
-
+        # ----------- Y scaling and offset -----------
+        y_scale = [float(self.doubleSpinBox_VtoDiv_ch1.text()), float(self.doubleSpinBox_VtoDiv_ch2.text())]
+        y_offset = [float(self.doubleSpinBox_VOffset_ch1.text()), float(self.doubleSpinBox_VOffset_ch2.text())]
+        # Create two array of ticks, for the two scales of the two channels
+        y_ticks = [np.arange(y_offset[i] - y_scale[i] * 5, y_offset[i] + y_scale[i] * 5, y_scale[i])
+                   for i in range(len(y_scale))]
         # --------- select peak -----------
         # At this point we have the location of the selected peak, either by (1) recent mouse click or (2) the last known location of the peak
         if self.selectedPeaksXY is not None and type(self.selectedPeaksXY) == list:# and len(self.selectedPeaksXY) == 2 and type(self.selectedPeaksXY[0]) == np.ndarray and type(self.selectedPeaksXY[1]) == np.ndarray:
@@ -275,11 +295,17 @@ class Cavity_lock_GUI(Scope_GUI):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
         errorSignal = (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
         output = self.pid(errorSignal)
-        print('Error Signal: ', errorSignal, 'Output: ', output)
+        if self.debugging: print('Error Signal: ', errorSignal, 'Output: ', output)
         # ------- set output --------------
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
-        self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
-        self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
+        if self.outputsFrame.checkBox_halogenOuputState.isChecked():
+            # Lock using halogen
+            if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
+            self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(output))
+        else: # lock with RedPitaya
+            self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
+            self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
+
 
 if __name__ == "__main__":
     app = QApplication([])
