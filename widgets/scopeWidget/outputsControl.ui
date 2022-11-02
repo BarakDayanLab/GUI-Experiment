@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>321</width>
+     <width>301</width>
      <height>311</height>
     </rect>
    </property>
@@ -393,7 +393,10 @@
        <double>50.000000000000000</double>
       </property>
       <property name="singleStep">
-       <double>0.010000000000000</double>
+       <double>1.000000000000000</double>
+      </property>
+      <property name="value">
+       <double>1.000000000000000</double>
       </property>
      </widget>
     </item>
@@ -469,7 +472,7 @@
        <double>50.000000000000000</double>
       </property>
       <property name="singleStep">
-       <double>0.010000000000000</double>
+       <double>1.000000000000000</double>
       </property>
      </widget>
     </item>
@@ -487,7 +490,7 @@
        <double>50.000000000000000</double>
       </property>
       <property name="singleStep">
-       <double>0.010000000000000</double>
+       <double>1.000000000000000</double>
       </property>
      </widget>
     </item>

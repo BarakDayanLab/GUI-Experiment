@@ -13,6 +13,8 @@ from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
+_LASER_CURRENT_LIMIT = 0.4 # [AMPS]
+_LASER_CURRENT_MIN = 0.16 # [AMPS]
 
 try:
     from functions.cavity_lock.cavity_lock import CavityLock
@@ -25,12 +27,12 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 
 class Cavity_lock_GUI(Scope_GUI):
-    def __init__(self, Parent=None, ui=None, simulation=True):
+    def __init__(self, Parent=None, ui=None,debugging = False, simulation=True):
         if Parent is not None:
             self.Parent = Parent
 
         self.listenForMouseClickCID = None
-        self.pid = PID(1, 0,0,setpoint = 0, output_limits=(0, 3.3))
+        self.pid = PID(1, 0,0,setpoint = 0, output_limits=(_LASER_CURRENT_MIN, _LASER_CURRENT_LIMIT), sample_time=0.5) # sample_time [seconds], time at which PID is updated
         self.lockOn = False
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
 
@@ -58,7 +60,7 @@ class Cavity_lock_GUI(Scope_GUI):
             self.threadpool = QThreadPool()
             print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        super().__init__(Parent=Parent, ui=ui, simulation=simulation)
+        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation)
         # up to here, nothing to change.
 
         # Add outputs control UI
@@ -96,6 +98,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def updateHMP4040Current(self):
         self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen.value())
+        self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(self.HMP4040.getVoltage()))
     def updateHMP4040Voltage(self):
         self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen.value())
         self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
@@ -189,27 +192,6 @@ class Cavity_lock_GUI(Scope_GUI):
         self.Avg_indx = self.Avg_indx + 1
         self.changedOutputs = False
 
-        # ---------------- Gaussian smoothing algo (Tal's)  ----------------
-        #
-        # RB_LINES_JUMP_THRESHOLD = 0.1  # threshold in volts for throwing rb lines data if jump occurs
-        #
-        # # gauss7 = np.array([0.0702, 0.1311, 0.1907, 0.2161, 0.1907, 0.1311, 0.0702])
-        # # Rb_lines_Data_with_conv = np.convolve(np.array(data[0]), gauss7, 'same')
-        # # Squared_Rb_lines_Data = [x ** 2 for x in Rb_lines_Data_with_conv]
-        # Squared_Rb_lines_Data = [x ** 2 for x in data[0]]
-        #
-        # # Squared_Rb_lines_Data = [x ** 2 for x in data[0]]
-        # if (sum(Squared_Rb_lines_Data) < RB_LINES_JUMP_THRESHOLD) & (len([x for x in np.absolute(data[0]) if x > 0.01]) > 2): #throws data when jump in channel occurs (due to turn off of the laser)
-        #     # print(max(np.absolute(data[0])))
-        #     print(sum(Squared_Rb_lines_Data))
-        #     self.Rb_lines_Data[self.Avg_indx] = Squared_Rb_lines_Data  # Insert new data
-        #     self.Avg_indx = (self.Avg_indx + 1) % self.Avg_num_CH1
-        # # if (max(-np.array(data[1])) > 0.01) & (sum(np.array(data[1])) > -7):
-        # # print(sum(np.array(data[1])))
-        # self.Cavity_Transmission_Data[self.Avg_indx] = data[1]  # Insert new data
-        # self.Avg_indx = (self.Avg_indx + 1) % self.Avg_num_CH2
-        # self.changedOutputs = False
-
         # ---------------- Average data  ----------------
         # Calculate avarage data and find peaks position (indx) and properties:
         Avg_data = []
@@ -300,8 +282,11 @@ class Cavity_lock_GUI(Scope_GUI):
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
         if self.outputsFrame.checkBox_halogenOuputState.isChecked():
             # Lock using halogen
-            if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
-            self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(output))
+            #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
+            if output > _LASER_CURRENT_LIMIT: output = _LASER_CURRENT_LIMIT
+            if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
+            if output != self.outputsFrame.doubleSpinBox_outIHalogen.value():
+                self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(output))
         else: # lock with RedPitaya
             self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
             self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
@@ -310,7 +295,7 @@ class Cavity_lock_GUI(Scope_GUI):
 if __name__ == "__main__":
     app = QApplication([])
     simulation = False if os.getlogin() == 'orelb' else True
-    window = Cavity_lock_GUI(simulation=simulation)
+    window = Cavity_lock_GUI(simulation=simulation, debugging = True)
     window.show()
     app.exec_()
     sys.exit(app.exec_())
