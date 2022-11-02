@@ -13,7 +13,7 @@ from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
-_LASER_CURRENT_LIMIT = 0.4 # [AMPS]
+_LASER_CURRENT_MAX = 0.4 # [AMPS]
 _LASER_CURRENT_MIN = 0.16 # [AMPS]
 
 try:
@@ -32,8 +32,9 @@ class Cavity_lock_GUI(Scope_GUI):
             self.Parent = Parent
 
         self.listenForMouseClickCID = None
-        self.pid = PID(1, 0,0,setpoint = 0, output_limits=(_LASER_CURRENT_MIN, _LASER_CURRENT_LIMIT), sample_time=0.5) # sample_time [seconds], time at which PID is updated
+        self.pid = None
         self.lockOn = False
+        self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
 
         # ---------- Rb Peaks ----------
@@ -118,11 +119,17 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def updatePID(self):
         P, I, D = float(self.outputsFrame.doubleSpinBox_P.value()), float(self.outputsFrame.doubleSpinBox_I.value()), float(self.outputsFrame.doubleSpinBox_D.value())
-        self.pid.tunings = (P, I, D)
+        if self.pid: self.pid.tunings = (P, I, D)
 
     def toggleLock(self):
         self.lockOn = not self.lockOn
         self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
+        self.outputOffset = self.self.outputsFrame.doubleSpinBox_outIHalogen.value()
+        # Set PID limits and values
+        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value()), float(self.outputsFrame.doubleSpinBox_I.value()), float(self.outputsFrame.doubleSpinBox_D.value())
+        self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
+                       sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
+
 
     def updateOutputChannels(self):
         # TODO: add hold-update to rp
@@ -275,7 +282,8 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def lockPeakToPeak(self):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
-        errorSignal = (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
+        errorSignal = 1e-3 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
+        # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
         if self.debugging: print('Error Signal: ', errorSignal, 'Output: ', output)
         # ------- set output --------------
@@ -285,7 +293,7 @@ class Cavity_lock_GUI(Scope_GUI):
             #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
             if output > _LASER_CURRENT_LIMIT: output = _LASER_CURRENT_LIMIT
             if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
-            if output != self.outputsFrame.doubleSpinBox_outIHalogen.value():
+            if output != self.outputsFrame.doubleSpinBox_outIHalogen.value(): # if output is different, only then send update command
                 self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(output))
         else: # lock with RedPitaya
             self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)

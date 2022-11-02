@@ -9,6 +9,8 @@ SCPI access to Red Pitaya.
 
 import socket
 import numpy as np
+import matplotlib.pyplot as plt
+
 import time
 #from functions.od.RSCurrentGenerator.RSCurrentGenerator import RSCurrentGenerator
 
@@ -35,7 +37,7 @@ class Scpi (object):
 
         except socket.error as e:
             print(host,':', port)
-            print('SCPI >> connect({:s}:{:d}) failed: {:s}'.format(host, port, e))
+            print('SCPI >> connect({:s}:{:d}) failed: {:s}'.format(str(host), port, str(e)))
 
     def __del__(self):
         if self._socket is not None:
@@ -157,18 +159,19 @@ class Redpitaya (Scpi):
         print("Decimation is set to " + self.get_decimation())
         # self.set_triggerSource('CH2_PE')
         self.trigger_source = trigger_source
-        self.set_triggerSource(self.trigger_source)  # By default, we trigger on the default DIO0_P
+        # self.set_triggerSource(self.trigger_source)  # By default, we trigger on the default DIO0_P
+        print("Triggering on " + self.trigger_source)
         print("Trigger status is " + self.get_triggerStatus())
         self.set_averaging('OFF')
         print("Averaging mode is " + self.get_averaging())
-        self.set_triggerDelay(trigger_delay)
+        #self.set_triggerDelay(trigger_delay)
         print("Trigger delay at %s ns" % (self.get_triggerDelay()))
-        self.set_triggerLevel(1000)
+        self.set_triggerLevel(500)
         print("Trigger level at %.2f mV" % (float(self.get_triggerLevel())*1000))
-        self.tx_txt('OUTPUT1:STATE OFF')
-        print("Output 1 is OFF")
-        self.tx_txt('OUTPUT2:STATE OFF')
-        print("Output 2 is OFF")
+        # self.tx_txt('OUTPUT1:STATE OFF')
+        # print("Output 1 is OFF")
+        # self.tx_txt('OUTPUT2:STATE OFF')
+        # print("Output 2 is OFF")
 
     def set_decimation(self, d):
         """Set decimation factor."""
@@ -193,7 +196,7 @@ class Redpitaya (Scpi):
             return self.tx_txt('ACQ:TRIG '+s)
         else:
             print("Please choose source from "+str(options))
-            
+
     def get_triggerStatus(self):
         """Get trigger status. If DISABLED -> TD else WAIT."""
         return self.txrx_txt('ACQ:TRIG:STAT?')
@@ -397,7 +400,7 @@ if __name__ == "__main__":
     # rp1 = Redpitaya("rp-f08a95.local")  # sigma +/-
     # rp1 = Redpitaya("127.0.0.1")  # sigma +/-
 
-    rp2 = Redpitaya("rp-f08c22.local")  # Pi
+    rp = Redpitaya("rp-f08c36.local", trigger_source='CH2_PE')  # Pi
     # rp3 = Redpitaya("rp-f0629e.local")  # OD
     # rp = redPitayaCluster()
     # a, b = rp2.get_traces()

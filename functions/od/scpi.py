@@ -36,7 +36,7 @@ class Scpi (object):
 
         except socket.error as e:
             print(host,':', port)
-            print('SCPI >> connect({:s}:{:d}) failed: {:s}'.format(host, port, e))
+#            print('SCPI >> connect({:s}:{:d}) failed: {:s}'.format(host, port, e))
 
     def __del__(self):
         if self._socket is not None:
@@ -402,8 +402,8 @@ if __name__ == "__main__":
     # rp1 = Redpitaya("rp-f08a95.local")  # sigma +/-
     # rp1 = Redpitaya("127.0.0.1")  # sigma +/-
 
-    # rp2 = Redpitaya("rp-f08c22.local")  # Pi
-    rp2 = Redpitaya("rp-f08c22.local", trigger_delay=25e6, decimation=64)  # Pi
+    rp = Redpitaya("rp-f08c36.local")  # Pi
+    #rp2 = Redpitaya("rp-f08c25.local", trigger_delay=25e6, decimation=64)  # Pi
     # rp2.set_decimation(64)
     #
     #
