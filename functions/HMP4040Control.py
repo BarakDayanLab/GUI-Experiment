@@ -22,7 +22,7 @@ def printGreen(s = ''): print(f"{bcolors.OKGREEN}{s}{bcolors.ENDC}")
 
 
 class HMP4040Visa():
-    def __init__(self, port = 'ASRL5::INSTR'):
+    def __init__(self, port = 'ASRL7::INSTR'):
         self.rm = pyvisa.ResourceManager()
         try:
             self.inst = self.rm.open_resource(port)
@@ -62,4 +62,4 @@ class HMP4040Visa():
         v = self.inst.query('VOLT?')
         return(float(v))
 
-#h = HMP4040Visa()
+# h = HMP4040Visa()

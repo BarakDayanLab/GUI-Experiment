@@ -14,7 +14,8 @@ from functions.HMP4040Control import HMP4040Visa
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
 _LASER_CURRENT_MAX = 0.4 # [AMPS]
-_LASER_CURRENT_MIN = 0.16 # [AMPS]
+_LASER_CURRENT_MIN = 0.02 # [AMPS]
+_LASER_TYPICAL_VOLTAGE = 3 #[volts]
 
 try:
     from functions.cavity_lock.cavity_lock import CavityLock
@@ -70,6 +71,9 @@ class Cavity_lock_GUI(Scope_GUI):
         uic.loadUi(ui_outputs, self.frame_4) # place outputs in frame 4
         self.connectOutputsButtonsAndSpinboxes()
 
+        # -- Set output voltage ---
+        self.outputsFrame.doubleSpinBox_outVHalogen.setValue(_LASER_TYPICAL_VOLTAGE)
+
     def connectOutputsButtonsAndSpinboxes(self):
         # PID spniboxes
         self.outputsFrame.doubleSpinBox_P.valueChanged.connect(self.updatePID)
@@ -124,9 +128,9 @@ class Cavity_lock_GUI(Scope_GUI):
     def toggleLock(self):
         self.lockOn = not self.lockOn
         self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
-        self.outputOffset = self.self.outputsFrame.doubleSpinBox_outIHalogen.value()
+        self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
-        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value()), float(self.outputsFrame.doubleSpinBox_I.value()), float(self.outputsFrame.doubleSpinBox_D.value())
+        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/10, float(self.outputsFrame.doubleSpinBox_I.value())/10, float(self.outputsFrame.doubleSpinBox_D.value()/10)
         self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
 
@@ -282,19 +286,20 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def lockPeakToPeak(self):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
-        errorSignal = 1e-3 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
+        errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
         # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
+        output = float(self.outputOffset + output)
         if self.debugging: print('Error Signal: ', errorSignal, 'Output: ', output)
         # ------- set output --------------
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
         if self.outputsFrame.checkBox_halogenOuputState.isChecked():
             # Lock using halogen
             #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
-            if output > _LASER_CURRENT_LIMIT: output = _LASER_CURRENT_LIMIT
+            if output > _LASER_CURRENT_MAX: output = _LASER_CURRENT_MAX
             if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
             if output != self.outputsFrame.doubleSpinBox_outIHalogen.value(): # if output is different, only then send update command
-                self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(output))
+                self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
         else: # lock with RedPitaya
             self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
             self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
