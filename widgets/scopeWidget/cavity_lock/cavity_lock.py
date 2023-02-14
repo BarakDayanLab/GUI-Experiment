@@ -130,7 +130,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
-        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/10, float(self.outputsFrame.doubleSpinBox_I.value())/10, float(self.outputsFrame.doubleSpinBox_D.value()/10)
+        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/100, float(self.outputsFrame.doubleSpinBox_I.value())/100, float(self.outputsFrame.doubleSpinBox_D.value()/100)
         self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
 
@@ -286,7 +286,12 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def lockPeakToPeak(self):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
-        errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection)
+        errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
+
+        # save error signal for thrshold in sprint experiments
+        error_sig_root =r'U:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
+        np.save(error_sig_root, errorSignal)
+
         # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
         output = float(self.outputOffset + output)
