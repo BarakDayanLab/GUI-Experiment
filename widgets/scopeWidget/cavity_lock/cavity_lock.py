@@ -11,9 +11,11 @@ import matplotlib
 from PID import PID
 from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
+import time
+
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
-_LASER_CURRENT_MAX = 0.4 # [AMPS]
+_LASER_CURRENT_MAX = 0.3 # [AMPS]
 _LASER_CURRENT_MIN = 0.02 # [AMPS]
 _LASER_TYPICAL_VOLTAGE = 3 #[volts]
 
@@ -43,8 +45,9 @@ class Cavity_lock_GUI(Scope_GUI):
         self.indx_to_freq = [0]
 
         # ----------- HMP4040 Control -----------
-        self.HMP4040 = HMP4040Visa(port = 'ASRL7::INSTR')
+        self.HMP4040 = HMP4040Visa(port = 'ASRL6::INSTR')
         self.HMP4040.setOutput(4)
+        self.HMP4040.outputState(2)
 
         # ----------- Velocity Intrument -----------
         # try:
@@ -73,6 +76,19 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # -- Set output voltage ---
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(_LASER_TYPICAL_VOLTAGE)
+
+        # save error signal
+        self.save_error_signal()
+
+    def save_error_signal(self):
+        self.all_error_signals =[]
+        all_error_sig_root = r'Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error'
+        dt_string = time.strftime('%d-%m-%y')
+        self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
+        if not os.path.exists(self.all_err_dated):
+            os.makedirs(self.all_err_dated)
+        self.time_string = time.strftime("%H-%M-%S")
+
 
     def connectOutputsButtonsAndSpinboxes(self):
         # PID spniboxes
@@ -130,10 +146,14 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
-        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/100, float(self.outputsFrame.doubleSpinBox_I.value())/100, float(self.outputsFrame.doubleSpinBox_D.value()/100)
+        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/1000, float(self.outputsFrame.doubleSpinBox_I.value())/1000, float(self.outputsFrame.doubleSpinBox_D.value()/1000)
         self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
 
+        # save all the error signal such that it can be plotted as function of time
+        time_string = time.strftime("%H-%M-%S")
+        all_error_signals_root = os.path.join(self.all_err_dated, 'all_locking_err' + time_string + '.npy')
+        np.save(all_error_signals_root, self.all_error_signals)
 
     def updateOutputChannels(self):
         # TODO: add hold-update to rp
@@ -289,8 +309,10 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # save error signal for thrshold in sprint experiments
-        error_sig_root =r'U:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
+        error_sig_root =r'Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
         np.save(error_sig_root, errorSignal)
+        self.all_error_signals += [errorSignal]
+
 
         # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
@@ -298,16 +320,12 @@ class Cavity_lock_GUI(Scope_GUI):
         if self.debugging: print('Error Signal: ', errorSignal, 'Output: ', output)
         # ------- set output --------------
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
-        if self.outputsFrame.checkBox_halogenOuputState.isChecked():
-            # Lock using halogen
-            #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
-            if output > _LASER_CURRENT_MAX: output = _LASER_CURRENT_MAX
-            if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
-            if output != self.outputsFrame.doubleSpinBox_outIHalogen.value(): # if output is different, only then send update command
-                self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
-        else: # lock with RedPitaya
-            self.outputsFrame.doubleSpinBox_ch1OutAmp.setValue(float(output) / 2)
-            self.outputsFrame.doubleSpinBox_ch1OutOffset.setValue(float(output) / 2)
+        # Lock using green laser
+        #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
+        if output > _LASER_CURRENT_MAX: output = _LASER_CURRENT_MAX
+        if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
+        if output != self.outputsFrame.doubleSpinBox_outIHalogen.value(): # if output is different, only then send update command
+            self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
 
 
 if __name__ == "__main__":

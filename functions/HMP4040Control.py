@@ -1,4 +1,4 @@
-#Here is an example usage (it will read all unique settings into a list, reset the instrument and then program the unique settings back into the instrument):
+# Here is an example usage (it will read all unique settings into a list, reset the instrument and then program the unique settings back into the instrument):
 
 import time
 import pyvisa
