@@ -284,37 +284,43 @@ class Scope_GUI(QuantumWidget):
     def printPeaksInformation(self):
         print('printPeaksInformation', str(self.indx_to_freq))
 
-    def fitMultipleLorentzians(self, xData, yData, peaks_indices, peaks_init_width):
-        # -- fit functions ---
-        def lorentzian(x, x0, a, gam):
-            return a * gam ** 2 / (gam ** 2 + (x - x0) ** 2)
+    def lorentzian(self,k_ex, k_tot, h, f_offset, offset, amp, f):
+        '''
+        k_ex,k_tot,h,f,f_offset - Hz
+        amp,offset - [V]
+        '''
+        delta = f - f_offset
+        z = offset + amp * np.power(np.abs(2 * k_ex * h / (1j * delta + k_tot) ** 2 + h ** 2), 2)
+        return z
 
-        def multi_lorentz_curve_fit(x, *params):
-            shift = params[0]  # Scalar shift
-            paramsRest = params[1:]  # These are the atcual parameters.
-            assert not (len(paramsRest) % 3)  # makes sure we have enough params
-            return shift + sum([lorentzian(x, *paramsRest[i: i + 3]) for i in range(0, len(paramsRest), 3)])
+    def fitMultipleLorentzians(self, xData, yData,params_0):
+        # -- fit functions ---
+        # def multi_lorentz_curve_fit(x, *params):
+        #     shift = params[0]  # Scalar shift
+        #     paramsRest = params[1:]  # These are the atcual parameters.
+        #     assert not (len(paramsRest) % 3)  # makes sure we have enough params
+        #     return shift + sum([lorentzian(x, *paramsRest[i: i + 3]) for i in range(0, len(paramsRest), 3)])
 
         # -------- Begin fit: --------------
-        pub = [0.5, 1.5]  # peak_uncertain_bounds
+        # pub = [0.5, 1.5]  # peak_uncertain_bounds
         startValues = []
-        for k, i in enumerate(peaks_indices):
-            startValues += [xData[i], yData[i], peaks_init_width[k] / 2]
-        lower_bounds = [-20] + [v * pub[0] for v in startValues]
-        upper_bounds = [20] + [v * pub[1] for v in startValues]
-        bounds = [lower_bounds, upper_bounds]
-        startValues = [min(yData)] + startValues  # This is the constant from which we start the Lorentzian fits - ideally, 0
-        popt, pcov = optimize.curve_fit(multi_lorentz_curve_fit, xData, yData, p0=startValues, maxfev=50000)
+        # for k, i in enumerate(peaks_indices):
+        #     startValues += params_0
+        # lower_bounds = [-20] + [v * pub[0] for v in startValues]
+        # upper_bounds = [20] + [v * pub[1] for v in startValues]
+        # bounds = [lower_bounds, upper_bounds]
+        # startValues = [min(yData)] + startValues  # This is the constant from which we start the Lorentzian fits - ideally, 0
+        popt, pcov = optimize.curve_fit(self.lorentzian, xData, yData, p0=params_0, maxfev=50000)
         #ys = [multi_lorentz_curve_fit(x, popt) for x in xData]
         return (popt)
 
     def multipleLorentziansParamsToText(self, popt):
         text = ''
-        params = popt[1:] # first param is a general shift
-        for i in range(0, len(params), 3):
-            text += 'X_0' +' = %.2f; ' % params[i]
-            text += 'I = %.2f; ' % params[i +1]
-            text += 'gamma' + ' = %.2f \n' %  params[i + 2]
+        params = popt
+        text += 'f_0' +' = %.2f; \n' % params[3]
+        text += 'k_i = %.2f; \n' % (params[1]-params[0])
+        text += 'k_total = %.2f; \n' % params[1]
+        text += 'h' + ' = %.2f \n' %  params[2]
         return (text)
 
 

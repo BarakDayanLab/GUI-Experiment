@@ -181,7 +181,7 @@
            <number>1024</number>
           </property>
           <property name="value">
-           <number>3</number>
+           <number>50</number>
           </property>
          </widget>
         </item>
@@ -191,7 +191,7 @@
            <string>Inverse</string>
           </property>
           <property name="checked">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -269,16 +269,16 @@
            </font>
           </property>
           <property name="decimals">
-           <number>2</number>
+           <number>3</number>
           </property>
           <property name="minimum">
-           <double>-2000.000000000000000</double>
+           <double>-40.000000000000000</double>
           </property>
           <property name="maximum">
-           <double>2000.000000000000000</double>
+           <double>40.000000000000000</double>
           </property>
           <property name="singleStep">
-           <double>1.000000000000000</double>
+           <double>0.001000000000000</double>
           </property>
           <property name="value">
            <double>0.000000000000000</double>
@@ -452,7 +452,7 @@
            <double>0.001000000000000</double>
           </property>
           <property name="value">
-           <double>0.050000000000000</double>
+           <double>0.010000000000000</double>
           </property>
          </widget>
         </item>
@@ -533,7 +533,7 @@
            <double>0.200000000000000</double>
           </property>
           <property name="value">
-           <double>0.040000000000000</double>
+           <double>0.060000000000000</double>
           </property>
          </widget>
         </item>
@@ -568,8 +568,14 @@
             <pointsize>10</pointsize>
            </font>
           </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
+          </property>
           <property name="value">
-           <double>2.000000000000000</double>
+           <double>0.020000000000000</double>
           </property>
          </widget>
         </item>
@@ -837,7 +843,7 @@
            <double>0.200000000000000</double>
           </property>
           <property name="value">
-           <double>0.060000000000000</double>
+           <double>0.100000000000000</double>
           </property>
          </widget>
         </item>

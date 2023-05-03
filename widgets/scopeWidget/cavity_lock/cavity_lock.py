@@ -1,6 +1,6 @@
 
 from PyQt5 import uic
-from scipy import optimize,spatial
+from scipy import optimize, spatial
 from scipy.signal import find_peaks
 # import vxi11 # https://github.com/python-ivi/python-vxi11
 import os
@@ -15,8 +15,8 @@ import time
 
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
-_LASER_CURRENT_MAX = 0.3 # [AMPS]
-_LASER_CURRENT_MIN = 0.02 # [AMPS]
+_LASER_CURRENT_MAX = 0.28 # [AMPS]
+_LASER_CURRENT_MIN = 0.17 # [AMPS]
 _LASER_TYPICAL_VOLTAGE = 3 #[volts]
 
 try:
@@ -218,8 +218,8 @@ class Cavity_lock_GUI(Scope_GUI):
         if redraw:
             self.scope_parameters = parameters  # keep all the parameters. we need them.
             self.CHsUpdated = False
-        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = data[0]  # Insert new data
-        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] = data[1]  # Insert new data
+        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = np.flipud(np.array(data[0]))  # Insert new data
+        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =np.flipud(np.array(data[1]))    # Insert new data
         self.Avg_indx = self.Avg_indx + 1
         self.changedOutputs = False
 
@@ -246,6 +246,7 @@ class Cavity_lock_GUI(Scope_GUI):
                                                         distance=float(self.spinBox_distance_ch2.value()),
                                                         prominence=float(self.doubleSpinBox_prominence_ch2.value()),
                                                         width=float(self.spinBox_width_ch2.value()))
+
 
         # ------- Scales -------
         # At this point we assume we have a corrcet calibration polynomial in @self.index_to_freq
@@ -309,7 +310,7 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # save error signal for thrshold in sprint experiments
-        error_sig_root =r'Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
+        error_sig_root ='Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
         np.save(error_sig_root, errorSignal)
         self.all_error_signals += [errorSignal]
 

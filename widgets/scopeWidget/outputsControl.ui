@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>261</width>
+     <width>327</width>
      <height>311</height>
     </rect>
    </property>
@@ -545,6 +545,9 @@
       </property>
       <property name="singleStep">
        <double>0.010000000000000</double>
+      </property>
+      <property name="value">
+       <double>0.660000000000000</double>
       </property>
      </widget>
     </item>
