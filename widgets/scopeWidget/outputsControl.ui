@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>327</width>
+     <width>334</width>
      <height>311</height>
     </rect>
    </property>
@@ -538,10 +538,10 @@
        </font>
       </property>
       <property name="minimum">
-       <double>-50.000000000000000</double>
+       <double>-100.000000000000000</double>
       </property>
       <property name="maximum">
-       <double>50.000000000000000</double>
+       <double>100.000000000000000</double>
       </property>
       <property name="singleStep">
        <double>0.010000000000000</double>

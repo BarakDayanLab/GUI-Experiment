@@ -42,7 +42,6 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
-        self.indx_to_freq = [0]
 
         # ----------- HMP4040 Control -----------
         self.HMP4040 = HMP4040Visa(port = 'ASRL6::INSTR')
@@ -218,8 +217,10 @@ class Cavity_lock_GUI(Scope_GUI):
         if redraw:
             self.scope_parameters = parameters  # keep all the parameters. we need them.
             self.CHsUpdated = False
-        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = np.flipud(np.array(data[0]))  # Insert new data
-        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =np.flipud(np.array(data[1]))    # Insert new data
+        # self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = np.flipud(np.array(data[0]))  # Insert new data
+        # self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =np.flipud(np.array(data[1]))    # Insert new data
+        self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = data[0]  # Insert new data
+        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =data[1]   # Insert new data
         self.Avg_indx = self.Avg_indx + 1
         self.changedOutputs = False
 
@@ -247,24 +248,40 @@ class Cavity_lock_GUI(Scope_GUI):
                                                         prominence=float(self.doubleSpinBox_prominence_ch2.value()),
                                                         width=float(self.spinBox_width_ch2.value()))
 
+        # converting time to MHz/detuning
+        numberOfDetectedPeaks = 2  # should detect exactly 3 peaks. otherwise, vortex probably moved
+
 
         # ------- Scales -------
         # At this point we assume we have a corrcet calibration polynomial in @self.index_to_freq
         # Set Values for x-axis frequency:
         time_scale = float(self.scope_parameters['OSC_TIME_SCALE']['value'])
         indx_to_time = float(10 * time_scale / self.scope_parameters['OSC_DATA_SIZE']['value'])
+        num_of_samples = int(self.scope_parameters['OSC_DATA_SIZE']['value'])
         # time-scale
-        x_axis = np.linspace(0, time_scale * 10, num=int(self.scope_parameters['OSC_DATA_SIZE']['value']))
-        x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
+        if len(Rb_peaks) != numberOfDetectedPeaks:
+            print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
+            x_axis = np.linspace(0, time_scale * 10, num=num_of_samples)
+            x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
+            x_axis_units = '[ms]'
+        else:
+            # self.indx_to_freq = (156.947 / 2) / (
+            #          (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+            self.indx_to_freq = (156.947 / 2+72.218/2) / (
+                     (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+            x_axis =  np.linspace(0, num_of_samples*self.indx_to_freq,num=num_of_samples)
+            # x_ticks = np.arange(x_axis[0], x_axis[-1], self.indx_to_freq)
+            x_ticks = np.arange(x_axis[0], x_axis[-1], num_of_samples*self.indx_to_freq/10)
+            x_axis_units = '[MHz]'
 
         # Secondary axis
-        indx_to_freq = self.indx_to_freq[0]
-        def timeToFreqScale(t):
-            print(indx_to_freq)
-            return (t - Rb_peaks[0]) * indx_to_freq
-        def freqToTimeScale(f):
-            print(indx_to_freq)
-            return f / indx_to_freq + Rb_peaks[0]
+        # indx_to_freq = self.indx_to_freq[0]
+        # def timeToFreqScale(t):
+        #     print(indx_to_freq)
+        #     return (t - Rb_peaks[0]) * indx_to_freq
+        # def freqToTimeScale(f):
+        #     print(indx_to_freq)
+        #     return f / indx_to_freq + Rb_peaks[0]
 
         # ----------- Y scaling and offset -----------
         y_scale = [float(self.doubleSpinBox_VtoDiv_ch1.text()), float(self.doubleSpinBox_VtoDiv_ch2.text())]
@@ -287,7 +304,7 @@ class Cavity_lock_GUI(Scope_GUI):
             popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
                                         peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
             params_text = self.multipleLorentziansParamsToText(popt)
-            text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
+            # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
             text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
 
         # --------- plot ---------
@@ -310,8 +327,9 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # save error signal for thrshold in sprint experiments
-        error_sig_root ='Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
-        np.save(error_sig_root, errorSignal)
+        with open('Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.txt') as f:
+            lines = f.writelines('%d', errorSignal)
+        # np.save(error_sig_root, errorSignal)
         self.all_error_signals += [errorSignal]
 
 
