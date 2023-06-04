@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-import websocket, requests, gzip, json
+import traceback
+
+import requests
+import websocket
+import gzip
+import json
 
 import numpy as np
 import time
@@ -8,17 +13,18 @@ import time
 class Redpitaya:
     # TODO: use timeout, get rid of port
 
-    def __init__(self, host,got_data_callback = None, timeout=None, trigger_source='EXT', dialogue_print_callback = None, debugging = False):
+    def __init__(self, host, got_data_callback=None, timeout=None, trigger_source='EXT', dialogue_print_callback=None, debugging=False):
         """Initialize object and open IP connection.
         Host IP should be a string in parentheses, like '192.168.1.100'.
         """
         self.time = time.time()
-        # self.print("Initing Redpitayas class instance (%s)..." %host)
+        # self.print("Initializing Red Pitaya class instance (%s)..." %host)
         self.host = host
         self.debugging = debugging
         self.timeout = timeout
         self.new_parameters = {}
-        self.received_parameters = {'new_parameters': True} # 'new_parameters' set to true, in order to redraw the plot for the first time
+        self.received_parameters = {'new_parameters': True}  # 'new_parameters' set to true, in order to redraw the plot for the first time
+        self.prev_data_from_rp = None
         self.sampling_rate = 125e6
         self.connected = False
         self.firstRun = True
@@ -27,10 +33,10 @@ class Redpitaya:
         if dialogue_print_callback is None:
             self.print = self.print_data
 
-
-        # TODO: delete following two lines.
+        # Set the trigger as default (later, UI may override this)
         self.set_triggerSource(trigger_source)  # By default, EXT
         self.set_triggerLevel(100)
+
         self.set_dataSize(1024)
         # By default, data coming from RP will be in Volts
         self.set_yScale(1, 1)
@@ -47,7 +53,7 @@ class Redpitaya:
         appConnectURL = 'http://%s/bazaar?start=%s' % (self.host, appName)
         try:
             response = requests.get(appConnectURL)
-            self.print(str(response))  # TODO: check this repsonse should be 200, otherwise throw exception(?)
+            self.print(str(response))  # TODO: check this response should be 200, otherwise throw exception(?)
         except Exception as e:
             self.print('Connection to %s failed.' % (appConnectURL), color='red')
             self.print(str(e))
@@ -60,7 +66,9 @@ class Redpitaya:
             wsURL = "ws://%s/wss" % str(self.host)
             self.print('Connecting to %s ' % wsURL)
             self.ws = websocket.WebSocketApp(wsURL,
-                                             on_message=self.on_message,on_close=self.on_close,on_error=self.on_error)# on_open=on_open,)
+                                             on_message=self.on_message,
+                                             on_close=self.on_close,
+                                             on_error=self.on_error)  # on_open=on_open,)
             self.connected = True
         except Exception as e:
             self.print('Connect({:s}) failed: {:s}'.format(host, str(e)), color = 'red')
@@ -82,14 +90,14 @@ class Redpitaya:
         self.new_parameters['in_command'] = {'value': 'send_all_params'}  # Not sure if this addition is obligatory, but it's always there for some reason, so why not.
         # I *THINK* it means socket responds with all parameters
         load = json.dumps({'parameters': self.new_parameters})
-        # Zero-out parameters to change.
-        self.new_parameters = {}
         self.ws.send(load)  # .encode())
+        # Now that parameters were sent to RP, reset new_parameters to change
+        self.new_parameters = {}
 
     def on_message(self, ws, message):
         self.updateParameters()  # Update any pending parameters change
 
-        # @messgae is (probably) unicode string represting compressed data.
+        # @message is (probably) unicode string representing compressed data.
         # This data must be decompressed (using gzip), then decoded (utf-8),
         # resulting in a JSON dictionary.
         data_text = gzip.decompress(message)
@@ -97,21 +105,29 @@ class Redpitaya:
         if 'signals' in data:
             ch1_values = data['signals']['ch1']['value']
             ch2_values = data['signals']['ch2']['value']
-            self.got_data_callback(data = [ch1_values,ch2_values], parameters = self.received_parameters) # update scope with new data!
-            self.received_parameters['new_parameters'] = False # After updating scope, with the existing parameters, these are not considered new anymore (this is for efficiency)
+            # Invoke callback function with data and parameters (update scope with new data and params)
+            try:
+                self.got_data_callback(data=[ch1_values, ch2_values], parameters=self.received_parameters)
+            except Exception as err:
+                tb = traceback.format_exc()
+                pass
+            # After updating scope, with the existing parameters, these are not considered new anymore (this is for efficiency)
+            self.received_parameters['new_parameters'] = False
         elif 'parameters' in data:
-            if 'OSC_TIME_SCALE' in data['parameters']:
+            if self.firstRun and 'OSC_TIME_SCALE' in data['parameters']:
+                self.firstRun = False
                 self.received_parameters = data['parameters']
                 self.received_parameters['new_parameters'] = True
-                if self.debugging: print(data['parameters'])
+                if self.debugging:
+                    print(data['parameters'])
         else:
-            self.print('Unexpected response from RP: \n%s' %data, color = 'red')
+            self.print('Unexpected response from RP: \n%s' %data, color='red')
 
     def on_error(self, ws, error):
-        self.print('RedPitayaWebsocket error: %s' %str(error), color = 'red')
+        self.print('RedPitayaWebsocket error: %s' %str(error), color='red')
 
     def on_close(self, ws, close_status_code, close_msg):
-        # Be    cause on_close was triggered, we know the opcode = 8
+        # Because on_close was triggered, we know the opcode = 8
         print("on_close args:")
         if close_status_code or close_msg:
             print("close status code: " + str(close_status_code))
@@ -127,10 +143,10 @@ class Redpitaya:
         pass
         # print(data)
 
-    def set_dataSize(self, s =1024):
+    def set_dataSize(self, s=1024):
         # Size of data vector rceived from RP
         if s < 1024 or s > 16384:
-            self.print('Data size must be 1024-16384!', color = 'red')
+            self.print('Data size must be 1024-16384!', color='red')
             return
         self.new_parameters['OSC_DATA_SIZE'] = {'value': s}
 
@@ -141,7 +157,7 @@ class Redpitaya:
         if s in options:
             self.new_parameters['OSC_TRIG_SOURCE'] = {'value': options.index(s)}
         else:
-            self.print("Please choose source from " + str(options), color = 'red')
+            self.print("Please choose trigger source from one of the following: " + str(options), color='red')
         self.set_triggerSweep()
 
     def set_triggerSweep(self, s='NORMAL'):
@@ -151,14 +167,14 @@ class Redpitaya:
             self.new_parameters['OSC_TRIG_SWEEP'] = {'value': options.index(s)}
             self.new_parameters['OSC_RUN'] = {'value': True}
         else:
-            self.print("Please choose source from " + str(options), color = 'red')
+            self.print("Please choose source from " + str(options), color='red')
 
-    def set_triggerLevel(self, lvl = 200):
-        """Set trigger level in mV.""" # mV???
+    def set_triggerLevel(self, lvl=200):
+        """Set trigger level in mV."""
         if np.abs(lvl) < 2000:
-            self.new_parameters['OSC_TRIG_LEVEL'] = {'value':lvl}
+            self.new_parameters['OSC_TRIG_LEVEL'] = {'value': lvl}
         else:
-            self.print('Trigger level must be < 2000', color = 'red')  # Not sure about trigger limit. it's thus in original code
+            self.print('Trigger level must be < 2000', color='red')  # Not sure about trigger limit. it's thus in original code
 
     def set_triggerDelay(self, t):
         """Set trigger delay in mili-sec."""
@@ -207,50 +223,51 @@ class Redpitaya:
         else:
             print("Please choose average from "+str(options))
 
-    def set_outputState(self, output = 1, state = True):
+    def set_outputState(self, output=1, state=True):
         self.new_parameters['OUTPUT%d_STATE' % output] = {'value': bool(state)}
-        self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(1)} # set high impedance; allows for higher outputs
+        self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(1)}  # set high impedance; allows for higher outputs
 
-    def set_outputFunction(self, output = 1, function = 0):
+    def set_outputFunction(self, output=1, function=0):
         # print('set_outputFunction',output,function)
-        functionsMap = ['SINE', 'SQUARE', 'TRIANGLE','SAWU','SAWD', 'DC', 'DC NEG', 'PWM']
+        functionsMap = ['SINE', 'SQUARE', 'TRIANGLE', 'SAWU', 'SAWD', 'DC', 'DC NEG', 'PWM']
         if type(function) is str and function in functionsMap: function = functionsMap.index(function)
         self.new_parameters['SOUR%d_FUNC' % output] = {'value': str(function)}
         # self.print('Output %d changed to %s.' % (int(output), functionsMap[function]))
 
-
-    def set_outputTrigger(self, output = 1, trigger = 1):
+    def set_outputTrigger(self, output=1, trigger=1):
         # print('set_outputFunction',output,function)
         triggerMap = ['Internal', 'External Negative edge', 'External Negative edge']
         if type(trigger) is str and trigger in triggerMap: trigger = triggerMap.index(trigger) + 1
         self.new_parameters['SOUR%d_TRIG_SOUR' % output] = {'value': str(trigger)}
         # self.print('Output %d changed to %s.' % (int(output), functionsMap[function]))
 
-    def set_outputAmplitude(self, output = 1, v = 0):  # Set output amplitude, in volts.
+    def set_outputAmplitude(self, output=1, v=0):  # Set output amplitude, in volts.
         if v > 5.01 or v < -5.01:
-            self.print("Warning! output voltage out of range!", color = 'red')
+            self.print("Warning! output voltage out of range!", color='red')
             return
         self.new_parameters['SOUR%d_VOLT' % output] = {'value': str(v)}
         # self.print('Output %d amp changed to %s volts.' % (int(output), str(v)))
 
-    def set_outputOffset(self, output = 1, v = 0): # Set output offset, in volts.
+    def set_outputOffset(self, output=1, v=0): # Set output offset, in volts.
         if v > 5.01 or v < -5.01:
             self.print("Warning! output voltage out of range!", color='red')
             return
         self.new_parameters['SOUR%d_VOLT_OFFS' % output] = {'value': str(v)}
         # self.print('Output %d offset changed to %s volts.' % (int(output), str(v)))
 
-    def set_outputFrequency(self, output = 1, freq = 50): # set frequency, in HZ
-        if freq < 0: return
+    def set_outputFrequency(self, output=1, freq=50):  # set frequency, in HZ
+        if freq < 0:
+            return
         self.new_parameters['SOUR%d_FREQ_FIX' % output] = {'value': str(freq)}
         # self.print('Output %d freq changed to %s Hz.' % (int(output), str(freq)))
 
-    def set_outputPhase(self, output = 1, deg = 0): # set phase, in DEGREES (engineers.. )
-        if v > 360 or v < 0: return
+    def set_outputPhase(self, output=1, deg=0):  # set phase, in DEGREES (engineers.. )
+        if deg > 360 or deg < 0:
+            return
         self.new_parameters['SOUR%d_PHAS' % output] = {'value': str(deg)}
 
 
-import matplotlib.pyplot as plt # TODO for debugging
+#import matplotlib.pyplot as plt # TODO for debugging
 
 if __name__ == "__main__":
     # rp1 = Redpitaya("rp-f08a95.local")  # sigma +/-

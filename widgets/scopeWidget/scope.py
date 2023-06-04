@@ -28,7 +28,7 @@ from widgets.quantumWidget import QuantumWidget
 
 
 class Scope_GUI(QuantumWidget):
-    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost = None, debugging = False):
+    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, debugging=False):
         if Parent is not None:
             self.Parent = Parent
         ui = os.path.join(os.path.dirname(__file__), "scopeWidgetGUI.ui") if ui is None else ui
@@ -46,12 +46,13 @@ class Scope_GUI(QuantumWidget):
         self.CHsUpdated = False
         self.rp = None  # Place holder
         self.isSavingNDataFiles = False
-        self.signalLength = self.scope_parameters['OSC_DATA_SIZE']['value'] # 1024 by default
+        self.signalLength = self.scope_parameters['OSC_DATA_SIZE']['value']  # 1024 by default
         self.indx_to_freq = [0]
 
         # -- connect --
         self.connectButtonsAndSpinboxes()
-        self.update_plot_params()
+        self.updateAveraging()
+        #self.update_plot_params()
 
         self.utils_connect_worker()
 
@@ -62,11 +63,10 @@ class Scope_GUI(QuantumWidget):
         self.pushButton_updatePlotDisplay.clicked.connect(self.updatePlotDisplay)
         self.checkBox_iPython.clicked.connect(self.showHideConsole)
         self.checkBox_parameters.clicked.connect(self.showHideParametersWindow)
-        self.checkBox_Rb_lines.clicked.connect(self.chns_update)
-        self.checkBox_Cavity_transm.clicked.connect(self.chns_update)
-
         self.checkBox_CH1Inverse.clicked.connect(self.setInverseChns)
         self.checkBox_CH2Inverse.clicked.connect(self.setInverseChns)
+
+        self.connect_custom_ui_controls()
 
 
     def setInverseChns(self):
@@ -74,32 +74,42 @@ class Scope_GUI(QuantumWidget):
         self.rp.set_inverseChannel(ch=2, value =  self.checkBox_CH2Inverse.isChecked())
 
     def update_plot_params(self):
-        self.Avg_num = [int(self.spinBox_averaging_ch1.value()), int(self.spinBox_averaging_ch2.value())]
-        self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
-        self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
-        self.Avg_indx = 0
+        raise NotImplementedError
+        # TODO: remove the code below - this method is the same as updateAveraging
+        # self.Avg_num = [int(self.spinBox_averaging_ch1.value()), int(self.spinBox_averaging_ch2.value())]
+        # self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
+        # self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
+        # self.Avg_indx = 0
 
+    # Update the RedPitaya with trigger settings as appears in UI
     def updateTriggerDelay(self):
-        t = float(self.doubleSpinBox_triggerDelay.value())  # ms
-        l = float(self.doubleSpinBox_triggerLevel.value()) # in mV
-        s = self.comboBox_triggerSource.currentText() # text
-        self.rp.set_triggerSource(s)
-        self.rp.set_triggerDelay(t)
-        self.rp.set_triggerLevel(l)
+        trigger_time = float(self.doubleSpinBox_triggerDelay.value())  # ms
+        trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V
+        trigger_source = self.comboBox_triggerSource.currentText()  # text
+        self.rp.set_triggerSource(trigger_source)
+        self.rp.set_triggerDelay(trigger_time)
+        self.rp.set_triggerLevel(trigger_level*1000)
         # self.print_to_dialogue("Trigger delay changed to %f ms; Source: %s; Level: %2.f [V]" % (t,s,l))
 
+    # Update the RedPitaya with the timescale as appears in UI
     def updateTimeScale(self):
         t = float(self.doubleSpinBox_timeScale.text())
         self.rp.set_timeScale(t)
         # self.print_to_dialogue("Time scale changed to %f ms" % t)
 
+    # Update the average sampling for the two channels
+    # (update the locker subclass, so it can zero its data buffers)
     def updateAveraging(self):
         self.Avg_num = [int(self.spinBox_averaging_ch1.value()),int(self.spinBox_averaging_ch2.value())]
-        self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
-        self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
+        # self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
+        # self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
         self.Avg_indx = 0
         # self.print_to_dialogue("Data averaging changed to %i" % self.Avg_num)
+        # Update the locker subclass that the params changed
+        self.averaging_parameters_updated()
 
+    # This is called on first-run or when "update" is clicked in UX
+    # It will update the RedPitaya with the settings in UI
     def updatePlotDisplay(self):
         self.updateTriggerDelay()
         self.updateTimeScale()
@@ -168,17 +178,22 @@ class Scope_GUI(QuantumWidget):
     def redPitayaConnect(self, progress_callback):
         RpHost = ["rp-ffffb4.local","rp-f08c22.local", "rp-f08c36.local"]
         if self.host == None:
-            self.rp = RedPitayaWebsocket.Redpitaya(host="rp-ffffb4.local", got_data_callback=self.update_scope,dialogue_print_callback=self.print_to_dialogue, debugging= self.debugging)
+            self.rp = RedPitayaWebsocket.Redpitaya(host="rp-ffffb4.local",
+                                                   got_data_callback=self.update_scope,
+                                                   dialogue_print_callback=self.print_to_dialogue,
+                                                   debugging= self.debugging)
         else:
-            self.rp = RedPitayaWebsocket.Redpitaya(host=self.host, got_data_callback=self.update_scope,
-                                                   dialogue_print_callback=self.print_to_dialogue, debugging= self.debugging)
+            self.rp = RedPitayaWebsocket.Redpitaya(host=self.host,
+                                                   got_data_callback=self.update_scope,
+                                                   dialogue_print_callback=self.print_to_dialogue,
+                                                   debugging= self.debugging)
 
         if self.rp.connected:
             self.connection_attempt = 0 # connection
-            self.print_to_dialogue("RedPitayas are connected.", color = 'green')
+            self.print_to_dialogue("RedPitayas are connected.", color='green')
             self.rp.run()
         else:
-            self.print_to_dialogue("Unable to connect to RedPitaya.", color= 'red')
+            self.print_to_dialogue("Unable to connect to RedPitaya.", color='red')
             self.rp.close()
             self.rp = None
             if self.connection_attempt < _CONNECTION_ATTMPTS:
@@ -188,8 +203,12 @@ class Scope_GUI(QuantumWidget):
 
 
 
-    # Never call this method. this is called by RedPitaya
+    # Never call this method. this is called by RedPitaya and implemented by sub-classes
     def update_scope(self, data, parameters):
+        raise NotImplementedError
+
+        # TODO: after we ensure this calss is not called by anyone, we can remove all the code below
+
         if self.rp.firstRun:
             # Set default from display...
             self.comboBox_triggerSource.setCurrentIndex(2) # Select EXT trigger...
@@ -200,7 +219,7 @@ class Scope_GUI(QuantumWidget):
             self.rp.firstRun = False
 
         # ---------------- Handle duplicate data ----------------
-        # It seems RedPitaya tends to send the same data more than once. That is, although it has not been triggered,
+        # It seems Red Pitaya tends to send the same data more than once. That is, although it has not been triggered,
         # scope will send current data as fast as it can.
         # Following lines aim to prevent unnecessary work
         previousDataIndex = self.Avg_indx - 1
@@ -217,7 +236,7 @@ class Scope_GUI(QuantumWidget):
         self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] = data[1]  # Insert new data
         self.Avg_indx = self.Avg_indx + 1
         # ---------------- Average data  ----------------
-        # Calculate avarage data and find peaks position (indx) and properties:
+        # Calculate average data and find peaks position (indx) and properties:
         Avg_data = []
         if self.checkBox_Rb_lines.isChecked():
             self.Rb_lines_Avg_Data = np.average(self.Rb_lines_Data, axis=0)

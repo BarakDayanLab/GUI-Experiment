@@ -11,6 +11,17 @@ The classes defined in Widgets define a widget that are then imported
 by main_GUI.py. Main_GUI.py opens a new tab in the main
 window and places said widget into it. 
 
+# Installation considerations
+
+Use Conda to install packages required for the project
+
+1. conda install pip
+2. pip install -r requirements.txt
+
+-OR-
+
+1. conda create --name <environment_name> --file requirements.txt
+
 # TODO:
 
 * Make sure the various objects all have access to the same pcg() object

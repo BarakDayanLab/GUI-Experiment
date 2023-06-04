@@ -89,6 +89,10 @@ class Cavity_lock_GUI(Scope_GUI):
         self.time_string = time.strftime("%H-%M-%S")
 
 
+    def connect_custom_ui_controls(self):
+        self.checkBox_Rb_lines.clicked.connect(self.chns_update)
+        self.checkBox_Cavity_transm.clicked.connect(self.chns_update)
+
     def connectOutputsButtonsAndSpinboxes(self):
         # PID spniboxes
         self.outputsFrame.doubleSpinBox_P.valueChanged.connect(self.updatePID)
@@ -154,6 +158,11 @@ class Cavity_lock_GUI(Scope_GUI):
         all_error_signals_root = os.path.join(self.all_err_dated, 'all_locking_err' + time_string + '.npy')
         np.save(all_error_signals_root, self.all_error_signals)
 
+    # Zero the data buffers upon averaging params change (invoked by super-class)
+    def averaging_parameters_updated(self):
+        self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
+        self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
+
     def updateOutputChannels(self):
         # TODO: add hold-update to rp
         self.changedOutputs = True
@@ -171,7 +180,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def scopeListenForMouseClick(self):
         def mouseClickOnScope(event): # what should do on mouse click, when listening
-            # Find nearest peak
+            # Find the nearest peak
             if self.selectedPeaksXY is None : # id first click, create list of peaks...
                 self.selectedPeaksXY = [np.array([event.xdata,event.ydata])]
                 self.print_to_dialogue('Select second peak on scope...', color='green')
@@ -220,12 +229,12 @@ class Cavity_lock_GUI(Scope_GUI):
         # self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = np.flipud(np.array(data[0]))  # Insert new data
         # self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =np.flipud(np.array(data[1]))    # Insert new data
         self.Rb_lines_Data[self.Avg_indx % self.Avg_num[0]] = data[0]  # Insert new data
-        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] =data[1]   # Insert new data
+        self.Cavity_Transmission_Data[self.Avg_indx % self.Avg_num[1]] = data[1]   # Insert new data
         self.Avg_indx = self.Avg_indx + 1
         self.changedOutputs = False
 
         # ---------------- Average data  ----------------
-        # Calculate avarage data and find peaks position (indx) and properties:
+        # Calculate average data and find peaks position (indx) and properties:
         Avg_data = []
         if self.checkBox_Rb_lines.isChecked():
             # TODO: Tal put a sqrt on the avg here - why?
@@ -253,7 +262,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
 
         # ------- Scales -------
-        # At this point we assume we have a corrcet calibration polynomial in @self.index_to_freq
+        # At this point we assume we have a correct calibration polynomial in @self.index_to_freq
         # Set Values for x-axis frequency:
         time_scale = float(self.scope_parameters['OSC_TIME_SCALE']['value'])
         indx_to_time = float(10 * time_scale / self.scope_parameters['OSC_DATA_SIZE']['value'])

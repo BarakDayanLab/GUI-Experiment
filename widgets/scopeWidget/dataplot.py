@@ -60,19 +60,19 @@ class PlotWindow(QDialog):
         widget.setContentsMargins(0, 0, 0, 0)
         self.widgetPlot = widget
 
-    def plot_Scope(self, x_data,y_data, autoscale = False, redraw = False, **kwargs):
+    def plot_Scope(self, x_data, y_data, autoscale = False, redraw=False, **kwargs):
         if not redraw:  # meaning - merely update data, without redrawing all.
             for i, line in enumerate(y_data):
                 self.lines[i].set_ydata(y_data[i])
                 if autoscale:
                     miny, maxy = min(y_data[i]), max(y_data[i])
-                    headroom = np.abs(maxy - miny) * 0.05 # leaving some room atop and below data in graph
+                    headroom = np.abs(maxy - miny) * 0.05  # leaving some room atop and below data in graph
                     self.axes[i].set_ylim(min(y_data[i]) - headroom, max(y_data[i]) + headroom)
                     ticks = np.linspace(miny, maxy, 10)
                     self.axes[i].set_yticks(ticks)
                     self.axes[i].set_yticklabels(['{:5.3f}'.format(t) for t in ticks])  # 10 divisions for autoscale
             if 'aux_plotting_func' in kwargs:
-                kwargs['aux_plotting_func'](redraw = redraw, **kwargs)  # This is a general way of calling this function
+                kwargs['aux_plotting_func'](redraw=redraw, **kwargs)  # This is a general way of calling this function
             if 'mark_peak' in kwargs and kwargs['mark_peak'] is not None:
                 self.markPeaks(kwargs['mark_peak'])
                 for i, pk in enumerate(kwargs['mark_peak']):
@@ -85,11 +85,11 @@ class PlotWindow(QDialog):
             return
 
         print('Redrawing all')
-        self.arrows = [None] * 2 # reset arrow
-        self.textBox = None # reset textbox
+        self.arrows = [None] * 2  # reset arrow
+        self.textBox = None  # reset textbox
         if 'labels' not in kwargs:
             kwargs['legend'] = False
-            kwargs['labels'] = [''] * 10 # to prevent glitches
+            kwargs['labels'] = [''] * 10  # to prevent glitches
 
         self.figure.clear()
         self.scatter = None
@@ -102,7 +102,7 @@ class PlotWindow(QDialog):
             self.axes[i] = self.axes[0].twinx()
 
         for i, el in enumerate(np.array(y_data)):
-            line1, = self.axes[i].plot(x_data, el, label=kwargs['labels'][i], color = _COLORS[i])  # Returns a tuple of line objects, thus the comma
+            line1, = self.axes[i].plot(x_data, el, label=kwargs['labels'][i], color=_COLORS[i])  # Returns a tuple of line objects, thus the comma
             self.lines[i] = line1
 
         # ------ legend ----------------
@@ -125,19 +125,24 @@ class PlotWindow(QDialog):
                     self.axes[i].set_yticks(y_ticks[i])
             self.axes[0].grid()
 
-        # ------ limits ----------------        for i, ax in enumerate(self.axes):
-        if autoscale:
-            self.axes[i].set_ylim(min(y_data[i][0]), max(y_data[i][0]) * 1.1)
-        elif 'y_ticks' in kwargs:
-            for i, ticks in enumerate(y_ticks):
-                self.axes[i].set_ylim(kwargs['y_ticks'][i][0], kwargs['y_ticks'][i][-1])
-        self.axes[0].set_xlim(x_data[0], x_data[-1])
+        # ------ limits ----------------
+        try:
+            if autoscale:
+                for i, ax in enumerate(self.axes):
+                    self.axes[i].set_ylim(min(y_data[i]), max(y_data[i]) * 1.1)
+                    #self.axes[0].set_ylim(min(y_data[0]), max(y_data[0]) * 1.1)
+            elif 'y_ticks' in kwargs:
+                for i, ticks in enumerate(y_ticks):
+                    self.axes[i].set_ylim(kwargs['y_ticks'][i][0], kwargs['y_ticks'][i][-1])
+            self.axes[0].set_xlim(x_data[0], x_data[-1])
 
-        self.axes[0].set_ylabel('Voltage [V]')
-        self.axes[0].set_xlabel('Time [ms]')
-        if 'aux_plotting_func' in kwargs:
-            kwargs['aux_plotting_func'](redraw = redraw, **kwargs) # This is a general way of calling this function
-        plt.tight_layout()
+            self.axes[0].set_ylabel('Voltage [V]')
+            self.axes[0].set_xlabel('Time [ms]')
+            if 'aux_plotting_func' in kwargs:
+                kwargs['aux_plotting_func'](redraw=redraw, **kwargs) # This is a general way of calling this function
+            plt.tight_layout()
+        except Exception as e:
+            pass
 
         self.canvas.draw()
 
