@@ -16,8 +16,10 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 class EOMLockGUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    RED_PITAYA_HOST = "rp-f08c36.local"
+    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
+    RED_PITAYA_HOST = "rp-ffff3e.local/" # 250
     OUTPUT_CHANNEL = 1  # There is 1 and 2 for the Red Pitaya
+    DBG_CHANNEL = 2
     SINE_FUNC = 0
     SQUARE_FUNC = 1
     DC_FUNC = 5
@@ -69,7 +71,12 @@ class EOMLockGUI(Scope_GUI):
         if True:
             self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
             self.rp.set_outputFunction(self.OUTPUT_CHANNEL, self.DC_FUNC)  # 0=SINE 1=SQUARE 5=DC
-            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0)
+            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0.8)
+
+            self.rp.set_outputState(self.DBG_CHANNEL, True)
+            self.rp.set_outputFunction(self.DBG_CHANNEL, self.DC_FUNC)  # 0=SINE 1=SQUARE 5=DC
+            self.rp.set_outputAmplitude(self.DBG_CHANNEL, 0.8)
+
 
         pass
 
@@ -185,6 +192,8 @@ class EOMLockGUI(Scope_GUI):
             self.x = self.x + self.STEP * self.flag
             volts_out = self.x
             self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, volts_out)
+            self.rp.set_outputAmplitude(self.DBG_CHANNEL, volts_out)
+
 
             # Check if we should change the sign
             delta = extinction_rate - self.prev_extinction_rate

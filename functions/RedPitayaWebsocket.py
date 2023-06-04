@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import traceback
 
 import requests
@@ -248,7 +249,7 @@ class Redpitaya:
         self.new_parameters['SOUR%d_VOLT' % output] = {'value': str(v)}
         # self.print('Output %d amp changed to %s volts.' % (int(output), str(v)))
 
-    def set_outputOffset(self, output=1, v=0): # Set output offset, in volts.
+    def set_outputOffset(self, output=1, v=0):  # Set output offset, in volts.
         if v > 5.01 or v < -5.01:
             self.print("Warning! output voltage out of range!", color='red')
             return
