@@ -72,7 +72,7 @@ class Redpitaya:
                                              on_error=self.on_error)  # on_open=on_open,)
             self.connected = True
         except Exception as e:
-            self.print('Connect({:s}) failed: {:s}'.format(host, str(e)), color = 'red')
+            self.print('Connect({:s}) failed: {:s}'.format(host, str(e)), color='red')
 
     def __del__(self):
         #self.print('Deleting Redpitaya object! \nProbably because connection failed.')

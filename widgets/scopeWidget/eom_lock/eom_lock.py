@@ -16,8 +16,8 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 class EOMLockGUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
-    RED_PITAYA_HOST = "rp-ffff3e.local/" # 250
+    RED_PITAYA_HOST = "rp-f08c36.local"  # 125
+    #RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
     OUTPUT_CHANNEL = 1  # There is 1 and 2 for the Red Pitaya
     DBG_CHANNEL = 2
     SINE_FUNC = 0
@@ -46,27 +46,24 @@ class EOMLockGUI(Scope_GUI):
             self.threadpool = QThreadPool()
             print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        # Find the UI file for EOM lock
-        ui = os.path.join(os.path.dirname(__file__), "eomWidgetGUI.ui") if ui is None else ui
+        # Get the UI file for EOM lock - the generic frame
+        ui = os.path.join(os.path.dirname(__file__), "eomLockWidgetGUI.ui") if ui is None else ui
 
         super().__init__(Parent=parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.RED_PITAYA_HOST)
 
         # Add outputs control UI
         self.outputsFrame = self.frame_4
+        ui_outputs = os.path.join(os.path.dirname(__file__), ".\\eomLockCustomControl.ui")
+        uic.loadUi(ui_outputs, self.frame_4)  # place outputs in frame 4
+        self.connectOutputsButtonsAndSpinboxes()
 
-        # TODO: Create a local file for this locker (e.g. EOMControls.ui)
-        if False:
-            ui_outputs = os.path.join(os.path.dirname(__file__), "..\\outputsControl.ui")
-            uic.loadUi(ui_outputs, self.frame_4) # place outputs in frame 4
-            self.connectOutputsButtonsAndSpinboxes()
-
-    def configure_output_channel(self):
-        if False:
-            self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
-            self.rp.set_outputFunction(self.OUTPUT_CHANNEL, self.SQUARE_FUNC)  # 0=SINE 1=SQUARE 5=DC
-            self.rp.set_outputTrigger(self.OUTPUT_CHANNEL, 0)  # Internal Trigger
-            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0.8)
-            self.rp.set_outputFrequency(self.OUTPUT_CHANNEL, 1)  # 1 Hz
+    def configure_output_channels(self):
+        # An example of sending out a SQUARE_FUNC:
+        # self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
+        # self.rp.set_outputFunction(self.OUTPUT_CHANNEL, self.SQUARE_FUNC)  # 0=SINE 1=SQUARE 5=DC
+        # self.rp.set_outputTrigger(self.OUTPUT_CHANNEL, 0)  # Internal Trigger
+        # self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0.8)
+        # self.rp.set_outputFrequency(self.OUTPUT_CHANNEL, 1)  # 1 Hz
 
         if True:
             self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
@@ -75,14 +72,38 @@ class EOMLockGUI(Scope_GUI):
 
             self.rp.set_outputState(self.DBG_CHANNEL, True)
             self.rp.set_outputFunction(self.DBG_CHANNEL, self.DC_FUNC)  # 0=SINE 1=SQUARE 5=DC
-            self.rp.set_outputAmplitude(self.DBG_CHANNEL, 0.8)
-
+            self.rp.set_outputAmplitude(self.DBG_CHANNEL, 0.6)
 
         pass
 
     def connect_custom_ui_controls(self):
         self.checkBox_ch1_lines.clicked.connect(self.chns_update)
         self.checkBox_ch2_lines.clicked.connect(self.chns_update)
+
+    def connectOutputsButtonsAndSpinboxes(self):
+        # PID spniboxes - THIS WILL CHANGE TO SOMETHING ELSE
+        # self.outputsFrame.doubleSpinBox_P.valueChanged.connect(self.doSomething)
+        # self.outputsFrame.doubleSpinBox_I.valueChanged.connect(self.doSomething)
+        # self.outputsFrame.doubleSpinBox_D.valueChanged.connect(self.doSomething)
+
+        # Connect checkboxes that enable/disable the output channels
+        self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
+        self.outputsFrame.checkBox_ch2OuputState.stateChanged.connect(self.updateOutputChannels)
+
+    def updateOutputChannels(self):
+        self.changedOutputs = True
+        # self.rp.set_outputFunction(output=1, function=str(self.outputsFrame.comboBox_ch1OutFunction.currentText()))
+        # self.rp.set_outputFunction(output=2, function=str(self.outputsFrame.comboBox_ch2OutFunction.currentText()))
+        # self.rp.set_outputAmplitude(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutAmp.value()))
+        # self.rp.set_outputAmplitude(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutAmp.value()))
+        # self.rp.set_outputFrequency(output=1, freq=float(self.outputsFrame.doubleSpinBox_ch1OutFreq.value()))
+        # self.rp.set_outputFrequency(output=2, freq=float(self.outputsFrame.doubleSpinBox_ch2OutFreq.value()))
+        # self.rp.set_outputOffset(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutOffset.value()))
+        # self.rp.set_outputOffset(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutOffset.value()))
+        self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()))
+        self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
+        self.rp.updateParameters()
+
 
     def update_scope(self, data, parameters):
 
@@ -94,7 +115,7 @@ class EOMLockGUI(Scope_GUI):
             self.updateOutputChannels()  # Sets flag so we "fake" as if output channels were changed
             self.red_pitaya_first_run = False
             # Configure Red Pitaya Output channel
-            self.configure_output_channel()
+            self.configure_output_channels()
 
 
         # Decide to redraw if (a) New parameters are in -or- (b) Channels updated
@@ -224,8 +245,8 @@ class EOMLockGUI(Scope_GUI):
         # self.rp.set_outputFrequency(output=2, freq=float(self.outputsFrame.doubleSpinBox_ch2OutFreq.value()))
         # self.rp.set_outputOffset(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutOffset.value()))
         # self.rp.set_outputOffset(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutOffset.value()))
-        # self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()))
-        # self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
+        self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()))
+        self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
 
         # Update the Red Pitaya that channels have changed
         self.rp.updateParameters()

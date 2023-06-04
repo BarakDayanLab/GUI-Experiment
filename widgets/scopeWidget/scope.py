@@ -138,7 +138,7 @@ class Scope_GUI(QuantumWidget):
         time.sleep(0.1)
         # self.connectOPX()
         # ---- Connect Red-Pitaya ------
-        RPworker = Worker(self.redPitayaConnect) #Trying to work on a different thread...
+        RPworker = Worker(self.redPitayaConnect)  # Trying to work on a different thread...
         self.threadpool.start(RPworker)
 
     def saveCurrentDataClicked(self):

@@ -28,7 +28,7 @@ class PlotWindow(QDialog):
         self.figure = plt.figure(1)
         self.axes = []
         self.axes.append(self.figure.add_subplot(111))
-        self.arrows = [None] * 2 #len(kwargs['mark_peak'])  # Create placeholder for 2 arrows
+        self.arrows = [None] * 2  #len(kwargs['mark_peak'])  # Create placeholder for 2 arrows
         self.markedPeaks = None
         self.scatter = None # Placeholder
         self.annotations = []
@@ -36,9 +36,9 @@ class PlotWindow(QDialog):
         self.textBox = None
         self.lines = []
 
-        for i in range(1,2):
+        for i in range(1, 2):
             self.axes.append(self.axes[0].twinx())
-        for i in range(2): # in principle, hold 2 places for lines. With good coding, this is not neccessary
+        for i in range(2):  # in principle, hold 2 places for lines. With good coding, this is not neccessary
             line1, = self.axes[i].plot([1], [1], 'r-')  # Returns a tuple of line objects, thus the comma
             self.lines.append(line1)
 

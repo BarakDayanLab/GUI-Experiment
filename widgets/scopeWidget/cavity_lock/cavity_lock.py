@@ -30,7 +30,11 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 
 class Cavity_lock_GUI(Scope_GUI):
-    def __init__(self, Parent=None, ui=None,debugging = False, simulation=True):
+    MOUNT_DRIVE = "U:\\"
+    RED_PITAYA_HOST = "rp-f08c36.local"  # 125
+    #RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
+
+    def __init__(self, Parent=None, ui=None, debugging=False, simulation=True):
         if Parent is not None:
             self.Parent = Parent
 
@@ -44,11 +48,13 @@ class Cavity_lock_GUI(Scope_GUI):
         self.selectedPeaksXY = None
 
         # ----------- HMP4040 Control -----------
-        self.HMP4040 = HMP4040Visa(port = 'ASRL6::INSTR')
-        self.HMP4040.setOutput(4)
-        self.HMP4040.outputState(2)
+        self.hmp4040_available = True
+        if self.hmp4040_available:
+            self.HMP4040 = HMP4040Visa(port='ASRL6::INSTR')
+            self.HMP4040.setOutput(4)
+            self.HMP4040.outputState(2)
 
-        # ----------- Velocity Intrument -----------
+        # ----------- Velocity Instrument -----------
         # try:
         #     self.velocity = vxi11.Instrument("169.254.46.36", 'gpib0,1')
         #     idn = self.velocity.ask("*IDN?")
@@ -64,13 +70,16 @@ class Cavity_lock_GUI(Scope_GUI):
             self.threadpool = QThreadPool()
             print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
-        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation)
+        # Get the UI file for Cavity lock - the generic frame
+        ui = os.path.join(os.path.dirname(__file__), "cavityLockWidgetGUI.ui") if ui is None else ui
+
+        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.RED_PITAYA_HOST)
         # up to here, nothing to change.
 
         # Add outputs control UI
         self.outputsFrame=self.frame_4
-        ui_outputs = os.path.join(os.path.dirname(__file__), "..\\outputsControl.ui")
-        uic.loadUi(ui_outputs, self.frame_4) # place outputs in frame 4
+        ui_outputs = os.path.join(os.path.dirname(__file__), ".\\outputsControl.ui")
+        uic.loadUi(ui_outputs, self.frame_4)  # place outputs in frame 4
         self.connectOutputsButtonsAndSpinboxes()
 
         # -- Set output voltage ---
@@ -80,12 +89,16 @@ class Cavity_lock_GUI(Scope_GUI):
         self.save_error_signal()
 
     def save_error_signal(self):
-        self.all_error_signals =[]
-        all_error_sig_root = r'Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error'
+        self.all_error_signals = []
+        all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error')
         dt_string = time.strftime('%d-%m-%y')
         self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
         if not os.path.exists(self.all_err_dated):
-            os.makedirs(self.all_err_dated)
+            try:
+                os.makedirs(self.all_err_dated)
+            except Exception as e:
+                print(e)
+                pass  # TODO: Show message we were not able to create error file
         self.time_string = time.strftime("%H-%M-%S")
 
 
@@ -121,28 +134,34 @@ class Cavity_lock_GUI(Scope_GUI):
 
 
     def updateHMP4040Current(self):
+        if not self.hmp4040_available:
+            return
         self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen.value())
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(self.HMP4040.getVoltage()))
     def updateHMP4040Voltage(self):
+        if not self.hmp4040_available:
+            return
         self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen.value())
         self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
-    def updateHMP4040State(self): self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
-
-
+    def updateHMP4040State(self):
+        if not self.hmp4040_available:
+            return
+        self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
 
     def updateVelocityWavelength(self):
         v = self.doubleSpinBox_velocityWavelength.value()
         self.velocity.write('WAVE {:.2f}'.format(v))
         res = self.velocity.ask('WAVE?')
         if res == 'Unknown Command':
-            self.print_to_dialogue('Could not change Velocity wavelength', color = 'red')
+            self.print_to_dialogue('Could not change Velocity wavelength', color='red')
             self.doubleSpinBox_velocityWavelength.setValue(self.velocityWavelength)
         else:
             self.velocityWavelength = v
 
     def updatePID(self):
         P, I, D = float(self.outputsFrame.doubleSpinBox_P.value()), float(self.outputsFrame.doubleSpinBox_I.value()), float(self.outputsFrame.doubleSpinBox_D.value())
-        if self.pid: self.pid.tunings = (P, I, D)
+        if self.pid:
+            self.pid.tunings = (P, I, D)
 
     def toggleLock(self):
         self.lockOn = not self.lockOn
