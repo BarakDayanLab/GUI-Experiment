@@ -150,12 +150,16 @@ class PlotWindow(QDialog):
             # if scatter don't exist - scatter for the first time
             if not self.scatter:# or  (self.scatter is not None and len() != len(x_data) ):
                 # draw scatter + define style
+                # for i in range(len(x_data)):
+                #     self.scatter[i] = self.axes[i].scatter(x_data[i], y_data[i], marker="x", color="b")
                 self.scatter = self.axes[ax_index].scatter(x_data, y_data, marker="x", color="b")
             else:  # merely update location
+                # for i in range(len(x_data)):
+                #     self.scatter[i].set_offsets(np.c_[x_data[i], y_data[i]])
                 self.scatter.set_offsets(np.c_[x_data, y_data])  # this seems to work.
 
             # --------------- annotate! (currently not in use, though should work) ----------
-            if 'scatter_tags' in kwargs and  kwargs['scatter_tags'] != []:
+            if 'scatter_tags' in kwargs and kwargs['scatter_tags'] != []:
                 # if annotations don't exist (and there are enough tags) - annontate for the first time
                 if (self.annotations is None or self.annotations == [])and len(kwargs['scatter_tags']) == len(x_data):
                     # draw scatter + define style

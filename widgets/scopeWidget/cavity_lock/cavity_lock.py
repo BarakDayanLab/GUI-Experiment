@@ -40,8 +40,11 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
 
+        self.err_cnt = 0
+
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
+        self.indx_to_freq = [0]
 
         # ----------- HMP4040 Control -----------
         self.HMP4040 = HMP4040Visa(port = 'ASRL6::INSTR')
@@ -171,8 +174,15 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def scopeListenForMouseClick(self):
         def mouseClickOnScope(event): # what should do on mouse click, when listening
-            # Find nearest peak
+            # numberOfDetectedPeaks=2
+            # if len(self.Rb_peaks)==numberOfDetectedPeaks:
+            #     self.indx_to_freq = (156.947 / 2 + 72.218 / 2) / (
+            #         (self.Rb_peaks[-1] - self.Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+            # else:
+            #     print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (
+            #         numberOfDetectedPeaks))
             if self.selectedPeaksXY is None : # id first click, create list of peaks...
+                # Find nearest peak
                 self.selectedPeaksXY = [np.array([event.xdata,event.ydata])]
                 self.print_to_dialogue('Select second peak on scope...', color='green')
             else: #if second peak, append it.
@@ -236,9 +246,9 @@ class Cavity_lock_GUI(Scope_GUI):
             Avg_data = Avg_data + [self.Cavity_Transmission_Avg_Data]
 
         # ---------------- Handle Rb Peaks ----------------
-        Rb_peaks, Cavity_peak, Rb_properties, Cavity_properties = [], [], {}, {} # by default, none
+        self.Rb_peaks, Cavity_peak, Rb_properties, Cavity_properties = [], [], {}, {} # by default, none
         if self.checkBox_Rb_lines.isChecked():
-            Rb_peaks, Rb_properties = find_peaks(self.Rb_lines_Avg_Data,
+            self.Rb_peaks, Rb_properties = find_peaks(self.Rb_lines_Avg_Data,
                                                  distance=float(self.spinBox_distance_ch1.value()),
                                                  prominence=float(self.doubleSpinBox_prominence_ch1.value()),
                                                  width=float(self.spinBox_width_ch1.value()))
@@ -251,7 +261,6 @@ class Cavity_lock_GUI(Scope_GUI):
         # converting time to MHz/detuning
         numberOfDetectedPeaks = 2  # should detect exactly 3 peaks. otherwise, vortex probably moved
 
-
         # ------- Scales -------
         # At this point we assume we have a corrcet calibration polynomial in @self.index_to_freq
         # Set Values for x-axis frequency:
@@ -259,16 +268,17 @@ class Cavity_lock_GUI(Scope_GUI):
         indx_to_time = float(10 * time_scale / self.scope_parameters['OSC_DATA_SIZE']['value'])
         num_of_samples = int(self.scope_parameters['OSC_DATA_SIZE']['value'])
         # time-scale
-        if len(Rb_peaks) != numberOfDetectedPeaks:
-            print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
+        if True:
+        # if len(self.Rb_peaks) != numberOfDetectedPeaks:
+        #     print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
             x_axis = np.linspace(0, time_scale * 10, num=num_of_samples)
             x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
             x_axis_units = '[ms]'
         else:
             # self.indx_to_freq = (156.947 / 2) / (
-            #          (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+            #          (self.Rb_peaks[-1] - self.Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
             self.indx_to_freq = (156.947 / 2+72.218/2) / (
-                     (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+                     (self.Rb_peaks[-1] - self.Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
             x_axis =  np.linspace(0, num_of_samples*self.indx_to_freq,num=num_of_samples)
             # x_ticks = np.arange(x_axis[0], x_axis[-1], self.indx_to_freq)
             x_ticks = np.arange(x_axis[0], x_axis[-1], num_of_samples*self.indx_to_freq/10)
@@ -278,10 +288,10 @@ class Cavity_lock_GUI(Scope_GUI):
         # indx_to_freq = self.indx_to_freq[0]
         # def timeToFreqScale(t):
         #     print(indx_to_freq)
-        #     return (t - Rb_peaks[0]) * indx_to_freq
+        #     return (t - self.Rb_peaks[0]) * indx_to_freq
         # def freqToTimeScale(f):
         #     print(indx_to_freq)
-        #     return f / indx_to_freq + Rb_peaks[0]
+        #     return f / indx_to_freq + self.Rb_peaks[0]
 
         # ----------- Y scaling and offset -----------
         y_scale = [float(self.doubleSpinBox_VtoDiv_ch1.text()), float(self.doubleSpinBox_VtoDiv_ch2.text())]
@@ -292,7 +302,7 @@ class Cavity_lock_GUI(Scope_GUI):
         # --------- select peak -----------
         # At this point we have the location of the selected peak, either by (1) recent mouse click or (2) the last known location of the peak
         if self.selectedPeaksXY is not None and type(self.selectedPeaksXY) == list:# and len(self.selectedPeaksXY) == 2 and type(self.selectedPeaksXY[0]) == np.ndarray and type(self.selectedPeaksXY[1]) == np.ndarray:
-            chn1_peaksLocation = np.array([[x_axis[p], Avg_data[0][p]] for p in Rb_peaks])  # all the peaks as coordinates
+            chn1_peaksLocation = np.array([[x_axis[p], Avg_data[0][p]] for p in self.Rb_peaks])  # all the peaks as coordinates
             chn2_peaksLocation = np.array([[x_axis[p], Avg_data[1][p]] for p in Cavity_peak])  # all the peaks as coordinates
             self.updateSelectedPeak([chn1_peaksLocation, chn2_peaksLocation])
 
@@ -301,18 +311,18 @@ class Cavity_lock_GUI(Scope_GUI):
         text_box_string = None
 
         if self.outputsFrame.checkBox_fitLorentzian.isChecked():
-            popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
+            popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=self.Rb_peaks,
                                         peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
             params_text = self.multipleLorentziansParamsToText(popt)
-            # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
-            text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
+            text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
+            text_box_string += 'Found %d Lorentzians: \n'%len(self.Rb_peaks) + params_text
 
         # --------- plot ---------
         # Prepare data for display:
         labels = ["CH1 - Vortex Rb lines", "CH2 - Cavity transmission"]
         self.widgetPlot.plot_Scope(x_axis, Avg_data, autoscale=self.checkBox_plotAutoscale.isChecked(), redraw=redraw, labels = labels, x_ticks = x_ticks, y_ticks= y_ticks,
-                                   aux_plotting_func = self.widgetPlot.plot_Scatter, scatter_y_data = np.concatenate([Avg_data[0][Rb_peaks], Avg_data[1][Cavity_peak]]),
-                                   scatter_x_data = np.concatenate([x_axis[Rb_peaks], x_axis[Cavity_peak]]),mark_peak = self.selectedPeaksXY, text_box = text_box_string)
+                                   aux_plotting_func = self.widgetPlot.plot_Scatter, scatter_y_data = np.concatenate([Avg_data[0][self.Rb_peaks], Avg_data[1][Cavity_peak]]),
+                                   scatter_x_data = np.concatenate([x_axis[self.Rb_peaks], x_axis[Cavity_peak]]),mark_peak = self.selectedPeaksXY, text_box = text_box_string)
 
         # --------- Lock -----------
         if self.lockOn and self.selectedPeaksXY and len(self.selectedPeaksXY) == 2: # if, and only if, we have selected two peaks to lock on
@@ -327,9 +337,12 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # save error signal for thrshold in sprint experiments
-        with open('Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.txt') as f:
-            lines = f.writelines('%d', errorSignal)
-        # np.save(error_sig_root, errorSignal)
+        error_sig_root ='Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.npy'
+        self.err_cnt=self.err_cnt+1
+        if self.err_cnt>50:
+            np.save(error_sig_root, errorSignal)
+            self.err_cnt=0
+            print('saved error')
         self.all_error_signals += [errorSignal]
 
 
