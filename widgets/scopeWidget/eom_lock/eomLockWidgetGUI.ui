@@ -850,11 +850,26 @@
            <bool>false</bool>
           </property>
           <property name="currentText">
-           <string notr="true"/>
+           <string notr="true">Trg:Auto</string>
           </property>
           <property name="currentIndex">
-           <number>-1</number>
+           <number>0</number>
           </property>
+          <item>
+           <property name="text">
+            <string>Trg:Auto</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Trg:Single</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Trg:Normal</string>
+           </property>
+          </item>
          </widget>
         </item>
        </layout>
