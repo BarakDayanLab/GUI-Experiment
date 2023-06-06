@@ -125,7 +125,7 @@
             <string>Plot Autoscale</string>
            </property>
            <property name="checked">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -293,6 +293,12 @@
         </item>
         <item row="0" column="4">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_VtoDiv_ch1">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -525,6 +531,12 @@
         </item>
         <item row="1" column="4">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_VtoDiv_ch2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -563,6 +575,12 @@
         </item>
         <item row="3" column="4">
          <widget class="QSpinBox" name="spinBox_distance_ch1">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -651,6 +669,12 @@
         </item>
         <item row="5" column="4">
          <widget class="QSpinBox" name="spinBox_distance_ch2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -709,6 +733,12 @@
         </item>
         <item row="2" column="4">
          <widget class="QDoubleSpinBox" name="doubleSpinBox_triggerLevel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="font">
            <font>
             <pointsize>10</pointsize>
@@ -763,6 +793,9 @@
           </property>
           <property name="text">
            <string>Save N Files:</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -868,6 +901,37 @@
           <item>
            <property name="text">
             <string>Trg:Normal</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="1" column="9">
+         <widget class="QComboBox" name="comboBox">
+          <property name="currentText">
+           <string>DC Coupling</string>
+          </property>
+          <item>
+           <property name="text">
+            <string>DC Coupling</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>AC Coupling</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="0" column="9">
+         <widget class="QComboBox" name="comboBox_2">
+          <item>
+           <property name="text">
+            <string>DC Coupling</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>AC Coupling</string>
            </property>
           </item>
          </widget>
