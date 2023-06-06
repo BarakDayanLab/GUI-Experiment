@@ -81,6 +81,11 @@ class Scope_GUI(QuantumWidget):
         # self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
         # self.Avg_indx = 0
 
+    def updateChannelCoupling(self):
+        ch1_coupling = self.comboBox_channel1Coupling.currentText()  # text
+        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ch1_coupling.replace(' Coupling', ''), verbose=True)
+        ch2_coupling = self.comboBox_channel2Coupling.currentText()  # text
+        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ch2_coupling.replace(' Coupling', ''), verbose=True)
 
     def updateTriggerSource(self):
         trigger_source = self.comboBox_triggerSource.currentText()  # text
@@ -90,8 +95,8 @@ class Scope_GUI(QuantumWidget):
         trigger_sweep = self.comboBox_triggerSweep.currentText()  # get sweep policy (SINGLE, AUTO, NORMAL
         self.rp.set_triggerSweep(trigger_sweep.replace('Trg:', '').upper(), True)
 
-    # TODO: Seprate this to 2 functions
-    # Update the RedPitaya with trigger settings as appears in UI
+    # TODO: Separate this to 2 functions
+    # Update the Red Pitaya with trigger settings as appears in UI
     def updateTriggerDelay(self):
         trigger_time = float(self.doubleSpinBox_triggerDelay.value())  # ms
         trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V

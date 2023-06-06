@@ -65,8 +65,8 @@ class EOMLockGUI(Scope_GUI):
         self.connectOutputsButtonsAndSpinboxes()
 
     def configure_input_channels(self):
-        self.rp.set_ac_dc_coupling_state(1, "DC_COUPLING")
-        self.rp.set_ac_dc_coupling_state(2, "DC_COUPLING")
+        self.rp.set_ac_dc_coupling_state(1, "DC")
+        self.rp.set_ac_dc_coupling_state(2, "DC")
         pass
 
     def configure_output_channels(self):
@@ -92,21 +92,19 @@ class EOMLockGUI(Scope_GUI):
     def connect_custom_ui_controls(self):
         self.checkBox_ch1_lines.clicked.connect(self.chns_update)
         self.checkBox_ch2_lines.clicked.connect(self.chns_update)
-        # Connect the trigger related comboboxes - Channel and Sweep
+        # Connect the trigger related combo boxes - Channel and Sweep
         self.comboBox_triggerSource.currentTextChanged.connect(self.updateTriggerSource)
         self.comboBox_triggerSweep.currentTextChanged.connect(self.updateTriggerSweep)
+
+        self.comboBox_channel1Coupling.currentTextChanged.connect(self.updateChannelCoupling)
+        self.comboBox_channel2Coupling.currentTextChanged.connect(self.updateChannelCoupling)
 
     # Bind the GUI elements in the Custom frame - "outputsFrame" (top-right)
     def connectOutputsButtonsAndSpinboxes(self):
         # Get Step and Weight parameters
         self.outputsFrame.doubleSpinBox_Step.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
-        # TODO: enable this after change in QT-Designer
-        #self.outputsFrame.doubleSpinBox_Threshold.valueChanged.connect(self.update_step_and_weight)
-
-
-        # TODO: change the name of this checkbox... (or add another checkbox)
-        self.outputsFrame.checkBox_ac_dc_OuputState.stateChanged.connect(self.udpateAcDcCoupling)
+        self.outputsFrame.doubleSpinBox_Threshold.valueChanged.connect(self.update_step_and_weight)
 
         # Connect checkboxes that enable/disable the output channels
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
@@ -124,12 +122,6 @@ class EOMLockGUI(Scope_GUI):
         # TODO: enable this after change in QT-Designer
         #self.threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
 
-    def udpateAcDcCoupling(self):
-        self.changedOutputs = True
-        ac_dc_coupling = 0 if bool(self.outputsFrame.checkBox_ac_dc_OuputState.checkState()) else 1
-        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ac_dc_coupling, verbose=True)
-        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ac_dc_coupling, verbose=True)
-        self.rp.updateParameters()
 
     def updateOutputChannels(self):
         self.changedOutputs = True
@@ -265,8 +257,6 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
 
         self.prev_extinction_ratio = extinction_ratio
-
-        self.outputsFrame.doubleSpinBox_extinctionRatio.value = self.x
 
         # Output the extinction ratio to the GUI
         self.outputsFrame.ExtinctionRatioLabel.setText("ER: %.2f dB" % self.x)

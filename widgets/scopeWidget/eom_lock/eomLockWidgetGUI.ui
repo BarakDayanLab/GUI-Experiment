@@ -906,7 +906,7 @@
          </widget>
         </item>
         <item row="1" column="9">
-         <widget class="QComboBox" name="comboBox">
+         <widget class="QComboBox" name="comboBox_channel2Coupling">
           <property name="currentText">
            <string>DC Coupling</string>
           </property>
@@ -923,7 +923,7 @@
          </widget>
         </item>
         <item row="0" column="9">
-         <widget class="QComboBox" name="comboBox_2">
+         <widget class="QComboBox" name="comboBox_channel1Coupling">
           <item>
            <property name="text">
             <string>DC Coupling</string>

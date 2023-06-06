@@ -229,7 +229,7 @@ class Redpitaya:
             print("Please choose average from "+str(options))
 
     def set_ac_dc_coupling_state(self, channel=1, coupling=0, verbose=False):
-        couplingMap = ['AC_COUPLING', 'DC_COUPLING']
+        couplingMap = ['AC', 'DC']
         if type(coupling) is str and coupling in couplingMap: coupling = couplingMap.index(coupling)
         if verbose: self.print('Setting coupling of channel %d to %s' % (channel, couplingMap[coupling]), color='green')
         self.new_parameters['OSC_CH%d_IN_AC_DC' % channel] = {'value': str(coupling)}
