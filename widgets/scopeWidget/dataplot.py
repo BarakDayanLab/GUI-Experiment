@@ -130,9 +130,12 @@ class PlotWindow(QDialog):
         # ------ limits ----------------
         try:
             if autoscale:
-                for i, ax in enumerate(self.axes):
-                    self.axes[i].set_ylim(min(y_data[i]), max(y_data[i]) * 1.1)
-                    #self.axes[0].set_ylim(min(y_data[0]), max(y_data[0]) * 1.1)
+                # for i, ax in enumerate(self.axes):
+                #     if len(y_data) > i:
+                #         self.axes[i].set_ylim(min(y_data[i]), max(y_data[i]) * 1.1)
+                #     else:
+                #         pass
+                self.axes[0].set_ylim(min(y_data[0]), max(y_data[0]) * 1.1)
             elif 'y_ticks' in kwargs:
                 for i, ticks in enumerate(y_ticks):
                     self.axes[i].set_ylim(kwargs['y_ticks'][i][0], kwargs['y_ticks'][i][-1])

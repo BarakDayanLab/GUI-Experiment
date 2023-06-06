@@ -37,6 +37,7 @@ class Redpitaya:
         # Set the trigger as default (later, UI may override this)
         self.set_triggerSource(trigger_source)  # By default, EXT
         self.set_triggerLevel(100)
+        self.set_triggerSweep('AUTO')
 
         self.set_dataSize(1024)
         # By default, data coming from RP will be in Volts
@@ -144,45 +145,48 @@ class Redpitaya:
         pass
         # print(data)
 
-    def set_dataSize(self, s=1024):
-        # Size of data vector rceived from RP
+    def set_dataSize(self, s=1024, verbose=False):
+        # Size of data vector received from RP
         if s < 1024 or s > 16384:
-            self.print('Data size must be 1024-16384!', color='red')
+            if verbose: self.print('Data size must be 1024-16384!', color='red')
             return
         self.new_parameters['OSC_DATA_SIZE'] = {'value': s}
 
-    def set_triggerSource(self, s):
+    def set_triggerSource(self, s, verbose=False):
         """Disable triggering, trigger immediately or set trigger source & edge."""
         #options = ("DISABLED", "NOW", "CH1_PE", "CH1_NE", "CH2_PE", "CH2_NE", "EXT_PE", "EXT_NE", "AWG_PE", "AWG_NE")
         options = ("CH1", "CH2", "EXT")
         if s in options:
+            if verbose: self.print('Setting trigger source to %s' % s, color='green')
             self.new_parameters['OSC_TRIG_SOURCE'] = {'value': options.index(s)}
         else:
             self.print("Please choose trigger source from one of the following: " + str(options), color='red')
-        self.set_triggerSweep()
 
-    def set_triggerSweep(self, s='AUTO'):
+    def set_triggerSweep(self, s='AUTO', verbose=False):
         options = ('AUTO', 'NORMAL', 'SINGLE')
         if s in options:
-            # print('Setting trigger-sweep to %s' %s)
+            if verbose: self.print('Setting trigger-sweep to %s' % s, color='green')
             self.new_parameters['OSC_TRIG_SWEEP'] = {'value': options.index(s)}
             self.new_parameters['OSC_RUN'] = {'value': True}
         else:
             self.print("Please choose source from " + str(options), color='red')
 
-    def set_triggerLevel(self, lvl=200):
+    def set_triggerLevel(self, lvl=200, verbose=False):
         """Set trigger level in mV."""
         if np.abs(lvl) < 2000:
+            if verbose: self.print('Setting trigger level to %d mV' % lvl, color='green')
             self.new_parameters['OSC_TRIG_LEVEL'] = {'value': lvl}
         else:
             self.print('Trigger level must be < 2000', color='red')  # Not sure about trigger limit. it's thus in original code
 
-    def set_triggerDelay(self, t):
-        """Set trigger delay in mili-sec."""
+    def set_triggerDelay(self, t, verbose=False):
+        """Set trigger delay in milli-sec."""
+        if verbose: self.print('Setting trigger delay to %d ms' % t, color='green')
         self.new_parameters['OSC_TIME_OFFSET'] = {'value': t}
 
-    def set_inverseChannel(self, value, ch):
-        self.new_parameters['CH%d_SHOW_INVERTED'% int(ch)] = {'value': bool(value)}
+    def set_inverseChannel(self, value, ch, verbose=False):
+        if verbose: self.print('Setting channel %s to inverse %s' % (ch, value), color='green')
+        self.new_parameters['CH%d_SHOW_INVERTED' % int(ch)] = {'value': bool(value)}
 
     def set_timeScale(self, t):
         """Set time scale in mili-sec."""
@@ -224,19 +228,22 @@ class Redpitaya:
         else:
             print("Please choose average from "+str(options))
 
-    def set_ac_dc_coupling_state(self, channel=1, coupling=0):
+    def set_ac_dc_coupling_state(self, channel=1, coupling=0, verbose=False):
         couplingMap = ['AC_COUPLING', 'DC_COUPLING']
         if type(coupling) is str and coupling in couplingMap: coupling = couplingMap.index(coupling)
+        if verbose: self.print('Setting coupling of channel %d to %s' % (channel, couplingMap[coupling]), color='green')
         self.new_parameters['OSC_CH%d_IN_AC_DC' % channel] = {'value': str(coupling)}
 
-    def set_outputState(self, output=1, state=True):
+    def set_outputState(self, output=1, state=True, verbose=False):
+        if verbose: self.print('Setting channel %d output to %s' % (output, state))
         self.new_parameters['OUTPUT%d_STATE' % output] = {'value': bool(state)}
         self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(1)}  # set high impedance; allows for higher outputs
 
-    def set_outputFunction(self, output=1, function=0):
-        # print('set_outputFunction',output,function)
+    def set_outputFunction(self, output=1, function=0, verbose=False):
         functionsMap = ['SINE', 'SQUARE', 'TRIANGLE', 'SAWU', 'SAWD', 'DC', 'DC NEG', 'PWM']
         if type(function) is str and function in functionsMap: function = functionsMap.index(function)
+        if verbose: print('Setting output function of channel %d to %s' % (output, functionsMap[function]))
+
         self.new_parameters['SOUR%d_FUNC' % output] = {'value': str(function)}
         # self.print('Output %d changed to %s.' % (int(output), functionsMap[function]))
 

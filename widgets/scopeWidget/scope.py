@@ -81,14 +81,22 @@ class Scope_GUI(QuantumWidget):
         # self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
         # self.Avg_indx = 0
 
+
+    def updateTriggerSource(self):
+        trigger_source = self.comboBox_triggerSource.currentText()  # text
+        self.rp.set_triggerSource(trigger_source, True)
+
+    def updateTriggerSweep(self):
+        trigger_sweep = self.comboBox_triggerSweep.currentText()  # get sweep policy (SINGLE, AUTO, NORMAL
+        self.rp.set_triggerSweep(trigger_sweep.replace('Trg:', '').upper(), True)
+
+    # TODO: Seprate this to 2 functions
     # Update the RedPitaya with trigger settings as appears in UI
     def updateTriggerDelay(self):
         trigger_time = float(self.doubleSpinBox_triggerDelay.value())  # ms
         trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V
-        trigger_source = self.comboBox_triggerSource.currentText()  # text
-        self.rp.set_triggerSource(trigger_source)
-        self.rp.set_triggerDelay(trigger_time)
-        self.rp.set_triggerLevel(trigger_level*1000)
+        self.rp.set_triggerDelay(trigger_time, True)
+        self.rp.set_triggerLevel(trigger_level*1000, True)
         # self.print_to_dialogue("Trigger delay changed to %f ms; Source: %s; Level: %2.f [V]" % (t,s,l))
 
     # Update the RedPitaya with the timescale as appears in UI
@@ -112,6 +120,8 @@ class Scope_GUI(QuantumWidget):
     # It will update the RedPitaya with the settings in UI
     def updatePlotDisplay(self):
         self.updateTriggerDelay()
+        self.updateTriggerSweep()
+        self.updateTriggerSource()
         self.updateTimeScale()
         self.updateAveraging()
         self.CHsUpdated = True
@@ -207,11 +217,11 @@ class Scope_GUI(QuantumWidget):
     def update_scope(self, data, parameters):
         raise NotImplementedError
 
-        # TODO: after we ensure this calss is not called by anyone, we can remove all the code below
+        # TODO: after we ensure this class is not called by anyone, we can remove all the code below
 
         if self.rp.firstRun:
             # Set default from display...
-            self.comboBox_triggerSource.setCurrentIndex(2) # Select EXT trigger...
+            self.comboBox_triggerSource.setCurrentIndex(2)  # Select EXT trigger...
             self.updatePlotDisplay()
             self.setInverseChns()
             self.showHideParametersWindow()

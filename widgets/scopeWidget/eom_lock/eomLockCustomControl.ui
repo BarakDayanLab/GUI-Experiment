@@ -514,7 +514,7 @@
        </font>
       </property>
       <property name="text">
-       <string>PID controller</string>
+       <string>EOM Lock Settings</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>

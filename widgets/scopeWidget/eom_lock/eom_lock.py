@@ -31,9 +31,10 @@ class EOMLockGUI(Scope_GUI):
     def __init__(self, parent=None, ui=None, debugging=False, simulation=True):
         self.lockOn = True
         self.x = 0
-        self.prev_extinction_rate = 0
+        self.prev_extinction_ratio = 0
         self.step = 0.2
         self.weight = 1.0
+        self.threshold = 1000  # dB
         self.flag = 1
         self.offset = -0.013
 
@@ -63,10 +64,6 @@ class EOMLockGUI(Scope_GUI):
         uic.loadUi(ui_outputs, self.frame_4)  # place outputs in frame 4
         self.connectOutputsButtonsAndSpinboxes()
 
-        self.fig = plt.figure()
-        self.y_axis=[]
-
-
     def configure_input_channels(self):
         self.rp.set_ac_dc_coupling_state(1, "DC_COUPLING")
         self.rp.set_ac_dc_coupling_state(2, "DC_COUPLING")
@@ -91,14 +88,22 @@ class EOMLockGUI(Scope_GUI):
 
         pass
 
+    # Bind the GUI elements in the Generic frame (common to all lockers)
     def connect_custom_ui_controls(self):
         self.checkBox_ch1_lines.clicked.connect(self.chns_update)
         self.checkBox_ch2_lines.clicked.connect(self.chns_update)
+        # Connect the trigger related comboboxes - Channel and Sweep
+        self.comboBox_triggerSource.currentTextChanged.connect(self.updateTriggerSource)
+        self.comboBox_triggerSweep.currentTextChanged.connect(self.updateTriggerSweep)
 
+    # Bind the GUI elements in the Custom frame - "outputsFrame" (top-right)
     def connectOutputsButtonsAndSpinboxes(self):
         # Get Step and Weight parameters
         self.outputsFrame.doubleSpinBox_Step.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
+        # TODO: enable this after change in QT-Designer
+        #self.outputsFrame.doubleSpinBox_Threshold.valueChanged.connect(self.update_step_and_weight)
+
 
         # TODO: change the name of this checkbox... (or add another checkbox)
         self.outputsFrame.checkBox_ac_dc_OuputState.stateChanged.connect(self.udpateAcDcCoupling)
@@ -116,13 +121,14 @@ class EOMLockGUI(Scope_GUI):
     def update_step_and_weight(self):
         self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
         self.weight = float(self.outputsFrame.doubleSpinBox_Weight.value())
-        pass
+        # TODO: enable this after change in QT-Designer
+        #self.threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
 
     def udpateAcDcCoupling(self):
         self.changedOutputs = True
         ac_dc_coupling = 0 if bool(self.outputsFrame.checkBox_ac_dc_OuputState.checkState()) else 1
-        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ac_dc_coupling)
-        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ac_dc_coupling)
+        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ac_dc_coupling, verbose=True)
+        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ac_dc_coupling, verbose=True)
         self.rp.updateParameters()
 
     def updateOutputChannels(self):
@@ -153,8 +159,6 @@ class EOMLockGUI(Scope_GUI):
             self.configure_input_channels()
             self.configure_output_channels()
 
-
-
         # Decide to redraw if (a) New parameters are in -or- (b) Channels updated
         # (if the outputs were changed, no need to redraw)
         redraw = (parameters['new_parameters'] or self.CHsUpdated) and not self.changedOutputs
@@ -181,11 +185,11 @@ class EOMLockGUI(Scope_GUI):
             self.channel1_avg_data = np.average(self.channel1_data, axis=0)
             Avg_data = Avg_data + [self.channel1_avg_data]
         if self.checkBox_ch2_lines.isChecked():
-            #self.channel2_avg_data = np.average(self.channel2_data, axis=0)
-            #Avg_data = Avg_data + [self.channel2_avg_data]
+            self.channel2_avg_data = np.average(self.channel2_data, axis=0)
+            Avg_data = Avg_data + [self.channel2_avg_data]
             # Add output line to the graph
-            buffer = np.full((1024,), self.x)
-            Avg_data = Avg_data + [buffer]
+            #buffer = np.full((1024,), self.x)
+            #Avg_data = Avg_data + [buffer]
 
         # Text box to be printed in lower right corner
         text_box_string = "EOM Lock"
@@ -239,17 +243,15 @@ class EOMLockGUI(Scope_GUI):
         max = self.channel1_data.max()-self.offset
 
         if min < 0:
-            min=0.01  # Avoid having extinction rate as INF
+            min = 0.01  # Avoid having extinction rate as INF
         if max < 0:
-            max=0
+            max = 0
 
-        extinction_rate = max/min
+        extinction_ratio = max/min
 
-        THRESHOLD = 1000
-
-        if extinction_rate > THRESHOLD:
+        if extinction_ratio > self.threshold:
             pass
-        elif extinction_rate < self.prev_extinction_rate:
+        elif extinction_ratio < self.prev_extinction_ratio:
             self.flag = -self.flag
 
         self.x = self.x + self.step * self.weight * self.flag
@@ -262,18 +264,12 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
         self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
 
-        self.prev_extinction_rate = extinction_rate
+        self.prev_extinction_ratio = extinction_ratio
 
         self.outputsFrame.doubleSpinBox_extinctionRatio.value = self.x
-        #self.outputsFrame.ExtinctionRatioLabel.setText(self.x)
 
-        self.y_axis.append(extinction_rate)
-
-        print(extinction_rate)
-        # plt.plot(np.arange(0,len(self.y_axis)),self.y_axis)
-        # plt.clf()
-
-        pass
+        # Output the extinction ratio to the GUI
+        self.outputsFrame.ExtinctionRatioLabel.setText("ER: %.2f dB" % self.x)
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):
@@ -293,8 +289,8 @@ class EOMLockGUI(Scope_GUI):
         # self.rp.set_outputFrequency(output=2, freq=float(self.outputsFrame.doubleSpinBox_ch2OutFreq.value()))
         # self.rp.set_outputOffset(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutOffset.value()))
         # self.rp.set_outputOffset(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutOffset.value()))
-        self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()))
-        self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
+        self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()), verbose=True)
+        self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()), verbose=True)
 
         # Update the Red Pitaya that channels have changed
         self.rp.updateParameters()

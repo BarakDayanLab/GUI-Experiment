@@ -191,7 +191,7 @@ class QuantumWidget (QWidget):
         else:
             self.frame_3.hide()
 
-    def print_to_dialogue (self, s, color = 'black'):
+    def print_to_dialogue(self, s, color='black'):
         s = str(s)
         if color not in ['black','green','red','blue']:
             color = 'black'
