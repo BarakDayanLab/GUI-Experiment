@@ -161,7 +161,7 @@ class Redpitaya:
             self.print("Please choose trigger source from one of the following: " + str(options), color='red')
         self.set_triggerSweep()
 
-    def set_triggerSweep(self, s='NORMAL'):
+    def set_triggerSweep(self, s='AUTO'):
         options = ('AUTO', 'NORMAL', 'SINGLE')
         if s in options:
             # print('Setting trigger-sweep to %s' %s)
@@ -189,7 +189,7 @@ class Redpitaya:
         # Note: this is time scale per 1 division. There are 10 divisions (!)
         self.new_parameters['OSC_TIME_SCALE'] = {'value': str(t)} # note strange: this (float) is converted to string
 
-    def set_yScale(self, v, ch = 1):
+    def set_yScale(self, v, ch=1):
         if ch < 1 or ch > 2: return
         """Set time scale in mili-sec."""
         # Note: this is y-scale (volt) per 1 division. There are 10 divisions (!)
@@ -223,6 +223,11 @@ class Redpitaya:
             return self.tx_txt('ACQ:AVG '+t)
         else:
             print("Please choose average from "+str(options))
+
+    def set_ac_dc_coupling_state(self, channel=1, coupling=0):
+        couplingMap = ['AC_COUPLING', 'DC_COUPLING']
+        if type(coupling) is str and coupling in couplingMap: coupling = couplingMap.index(coupling)
+        self.new_parameters['OSC_CH%d_IN_AC_DC' % channel] = {'value': str(coupling)}
 
     def set_outputState(self, output=1, state=True):
         self.new_parameters['OUTPUT%d_STATE' % output] = {'value': bool(state)}

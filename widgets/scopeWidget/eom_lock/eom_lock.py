@@ -11,13 +11,17 @@ from PyQt5 import uic
 from PyQt5.QtCore import QThreadPool
 from PyQt5.QtWidgets import QApplication
 
+import matplotlib.pyplot as plt
+
 from widgets.scopeWidget.scope import Scope_GUI
 
 
+# We have the AWG send a modulating signal to the EOM
+# The EOM has a tendency to drift
 class EOMLockGUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    RED_PITAYA_HOST = "rp-f08c36.local"  # 125
-    #RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
+    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
+    RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
     OUTPUT_CHANNEL = 1  # There is 1 and 2 for the Red Pitaya
     DBG_CHANNEL = 2
     SINE_FUNC = 0
@@ -28,8 +32,10 @@ class EOMLockGUI(Scope_GUI):
         self.lockOn = True
         self.x = 0
         self.prev_extinction_rate = 0
-        self.STEP = 0.2
+        self.step = 0.2
+        self.weight = 1.0
         self.flag = 1
+        self.offset = -0.013
 
         if parent is not None:
             self.parent = parent
@@ -57,6 +63,15 @@ class EOMLockGUI(Scope_GUI):
         uic.loadUi(ui_outputs, self.frame_4)  # place outputs in frame 4
         self.connectOutputsButtonsAndSpinboxes()
 
+        self.fig = plt.figure()
+        self.y_axis=[]
+
+
+    def configure_input_channels(self):
+        self.rp.set_ac_dc_coupling_state(1, "DC_COUPLING")
+        self.rp.set_ac_dc_coupling_state(2, "DC_COUPLING")
+        pass
+
     def configure_output_channels(self):
         # An example of sending out a SQUARE_FUNC:
         # self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
@@ -81,14 +96,34 @@ class EOMLockGUI(Scope_GUI):
         self.checkBox_ch2_lines.clicked.connect(self.chns_update)
 
     def connectOutputsButtonsAndSpinboxes(self):
-        # PID spniboxes - THIS WILL CHANGE TO SOMETHING ELSE
-        # self.outputsFrame.doubleSpinBox_P.valueChanged.connect(self.doSomething)
-        # self.outputsFrame.doubleSpinBox_I.valueChanged.connect(self.doSomething)
-        # self.outputsFrame.doubleSpinBox_D.valueChanged.connect(self.doSomething)
+        # Get Step and Weight parameters
+        self.outputsFrame.doubleSpinBox_Step.valueChanged.connect(self.update_step_and_weight)
+        self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
+
+        # TODO: change the name of this checkbox... (or add another checkbox)
+        self.outputsFrame.checkBox_ac_dc_OuputState.stateChanged.connect(self.udpateAcDcCoupling)
 
         # Connect checkboxes that enable/disable the output channels
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
         self.outputsFrame.checkBox_ch2OuputState.stateChanged.connect(self.updateOutputChannels)
+
+    # Zero the data buffers upon averaging params change (invoked by super-class)
+    def averaging_parameters_updated(self):
+        self.channel1_data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
+        self.channel2_data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
+
+    # Updates the step/weight params that affect the lock mechanism
+    def update_step_and_weight(self):
+        self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
+        self.weight = float(self.outputsFrame.doubleSpinBox_Weight.value())
+        pass
+
+    def udpateAcDcCoupling(self):
+        self.changedOutputs = True
+        ac_dc_coupling = 0 if bool(self.outputsFrame.checkBox_ac_dc_OuputState.checkState()) else 1
+        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ac_dc_coupling)
+        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ac_dc_coupling)
+        self.rp.updateParameters()
 
     def updateOutputChannels(self):
         self.changedOutputs = True
@@ -115,7 +150,9 @@ class EOMLockGUI(Scope_GUI):
             self.updateOutputChannels()  # Sets flag so we "fake" as if output channels were changed
             self.red_pitaya_first_run = False
             # Configure Red Pitaya Output channel
+            self.configure_input_channels()
             self.configure_output_channels()
+
 
 
         # Decide to redraw if (a) New parameters are in -or- (b) Channels updated
@@ -129,7 +166,7 @@ class EOMLockGUI(Scope_GUI):
 
         self.changedOutputs = False
 
-        # Insert new data from channels
+        # Insert new data from channels to the corresponding averaging array
         self.channel1_data[self.Avg_indx % self.Avg_num[0]] = data[0]
         self.channel2_data[self.Avg_indx % self.Avg_num[1]] = data[1]
 
@@ -138,18 +175,19 @@ class EOMLockGUI(Scope_GUI):
         self.changedOutputs = False
 
         # ---------------- Average data  ----------------
-        # Calculate average data and find peaks position (indx) and properties:
+        # Calculate average data:
         Avg_data = []
         if self.checkBox_ch1_lines.isChecked():
-            # TODO: Tal put a sqrt on the avg here - why?
             self.channel1_avg_data = np.average(self.channel1_data, axis=0)
             Avg_data = Avg_data + [self.channel1_avg_data]
         if self.checkBox_ch2_lines.isChecked():
-            self.channel2_avg_data = np.average(self.channel2_data, axis=0)
-            Avg_data = Avg_data + [self.channel2_avg_data]
+            #self.channel2_avg_data = np.average(self.channel2_data, axis=0)
+            #Avg_data = Avg_data + [self.channel2_avg_data]
+            # Add output line to the graph
+            buffer = np.full((1024,), self.x)
+            Avg_data = Avg_data + [buffer]
 
-        # ----------- text box -----------
-        # to be printed in lower right corner
+        # Text box to be printed in lower right corner
         text_box_string = "EOM Lock"
 
         time_scale = float(self.scope_parameters['OSC_TIME_SCALE']['value'])
@@ -167,9 +205,6 @@ class EOMLockGUI(Scope_GUI):
                    for i in range(len(y_scale))]
         autoscale = self.checkBox_plotAutoscale.isChecked()
 
-        Avg_data[1] = Avg_data[0]
-        #redraw = False
-
         # --------- plot ---------
         # Prepare data for display:
         labels = ["CH1 - channel 1 description", "CH2 - channel 2 description"]
@@ -178,12 +213,13 @@ class EOMLockGUI(Scope_GUI):
                                        autoscale=autoscale,
                                        redraw=redraw,
                                        labels=labels,
-                                       x_ticks=x_ticks, y_ticks=y_ticks,
+                                       x_ticks=x_ticks,
+                                       y_ticks=y_ticks,
                                        #aux_plotting_func = self.widgetPlot.plot_Scatter,
                                        #scatter_y_data=np.concatenate([Avg_data[0][Rb_peaks], Avg_data[1][Cavity_peak]]),
                                        #scatter_x_data=np.concatenate([x_axis[Rb_peaks], x_axis[Cavity_peak]]),
                                        #mark_peak = self.selectedPeaksXY,
-                                       text_box = text_box_string)
+                                       text_box=text_box_string)
         except Exception as e:
             tb = traceback.format_exc()
             print(tb)
@@ -199,31 +235,43 @@ class EOMLockGUI(Scope_GUI):
 
     def lock(self):
         # Find the peaks - high and low
-        #min = numpy.amin(self.channel1_data)
-        #max = numpy.amax(self.channel1_data)
-        min = self.channel1_data.min()
-        max = self.channel1_data.max()
+        min = self.channel1_data.min()-self.offset
+        max = self.channel1_data.max()-self.offset
 
-        min = min + 10
-        max = max + 10
+        if min < 0:
+            min=0.01  # Avoid having extinction rate as INF
+        if max < 0:
+            max=0
 
-        extinction_rate = min/max
+        extinction_rate = max/min
 
-        if extinction_rate > self.prev_extinction_rate:
-            self.x = self.x + self.STEP * self.flag
-            volts_out = self.x
-            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, volts_out)
-            self.rp.set_outputAmplitude(self.DBG_CHANNEL, volts_out)
+        THRESHOLD = 1000
 
-
-            # Check if we should change the sign
-            delta = extinction_rate - self.prev_extinction_rate
-            if delta > 0 and delta < 0.5:
-                self.flag = -self.flag
-
+        if extinction_rate > THRESHOLD:
             pass
+        elif extinction_rate < self.prev_extinction_rate:
+            self.flag = -self.flag
+
+        self.x = self.x + self.step * self.weight * self.flag
+
+        if self.x >= 5.0:
+            self.x = 5.0
+        elif self.x <= -5.0:
+            self.x = -5.0
+
+        self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
+        self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
 
         self.prev_extinction_rate = extinction_rate
+
+        self.outputsFrame.doubleSpinBox_extinctionRatio.value = self.x
+        #self.outputsFrame.ExtinctionRatioLabel.setText(self.x)
+
+        self.y_axis.append(extinction_rate)
+
+        print(extinction_rate)
+        # plt.plot(np.arange(0,len(self.y_axis)),self.y_axis)
+        # plt.clf()
 
         pass
 

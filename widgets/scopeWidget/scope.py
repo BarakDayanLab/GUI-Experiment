@@ -100,7 +100,7 @@ class Scope_GUI(QuantumWidget):
     # Update the average sampling for the two channels
     # (update the locker subclass, so it can zero its data buffers)
     def updateAveraging(self):
-        self.Avg_num = [int(self.spinBox_averaging_ch1.value()),int(self.spinBox_averaging_ch2.value())]
+        self.Avg_num = [int(self.spinBox_averaging_ch1.value()), int(self.spinBox_averaging_ch2.value())]
         # self.Rb_lines_Data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
         # self.Cavity_Transmission_Data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
         self.Avg_indx = 0

@@ -15,7 +15,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import matplotlib.pyplot as plt
 import numpy as np
 
-_COLORS = ['b','g','r','c', 'm','y']
+_COLORS = ['b', 'g', 'r', 'c', 'm', 'y']
 def gaussian(x, amplitude, mean, stddev):
     return amplitude * np.exp(-((x - mean) ** 2 / 2 / stddev ** 2))
 
@@ -60,12 +60,14 @@ class PlotWindow(QDialog):
         widget.setContentsMargins(0, 0, 0, 0)
         self.widgetPlot = widget
 
-    def plot_Scope(self, x_data, y_data, autoscale = False, redraw=False, **kwargs):
+    def plot_Scope(self, x_data, y_data, autoscale=False, redraw=False, **kwargs):
         if not redraw:  # meaning - merely update data, without redrawing all.
             for i, line in enumerate(y_data):
                 self.lines[i].set_ydata(y_data[i])
                 if autoscale:
                     miny, maxy = min(y_data[i]), max(y_data[i])
+                    if miny+maxy == 0:
+                        continue
                     headroom = np.abs(maxy - miny) * 0.05  # leaving some room atop and below data in graph
                     self.axes[i].set_ylim(min(y_data[i]) - headroom, max(y_data[i]) + headroom)
                     ticks = np.linspace(miny, maxy, 10)
@@ -98,7 +100,7 @@ class PlotWindow(QDialog):
             ax = None
         self.axes[0] = self.figure.add_subplot(111)
 
-        for i in range(1,2):
+        for i in range(1, 2):
             self.axes[i] = self.axes[0].twinx()
 
         for i, el in enumerate(np.array(y_data)):

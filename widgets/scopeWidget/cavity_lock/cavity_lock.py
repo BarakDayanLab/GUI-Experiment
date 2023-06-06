@@ -31,8 +31,8 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 class Cavity_lock_GUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    RED_PITAYA_HOST = "rp-f08c36.local"  # 125
-    #RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
+    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
+    RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
 
     def __init__(self, Parent=None, ui=None, debugging=False, simulation=True):
         if Parent is not None:
@@ -100,7 +100,6 @@ class Cavity_lock_GUI(Scope_GUI):
                 print(e)
                 pass  # TODO: Show message we were not able to create error file
         self.time_string = time.strftime("%H-%M-%S")
-
 
     def connect_custom_ui_controls(self):
         self.checkBox_Rb_lines.clicked.connect(self.chns_update)

@@ -324,24 +324,6 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="9">
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_timeScale">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-           </font>
-          </property>
-          <property name="decimals">
-           <number>3</number>
-          </property>
-          <property name="singleStep">
-           <double>0.010000000000000</double>
-          </property>
-          <property name="value">
-           <double>0.050000000000000</double>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="5">
          <widget class="QLabel" name="label_14">
           <property name="font">
@@ -417,21 +399,6 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="9">
-         <widget class="QSpinBox" name="spinBox_width_ch1">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-           </font>
-          </property>
-          <property name="maximum">
-           <number>1024</number>
-          </property>
-          <property name="value">
-           <number>2</number>
-          </property>
-         </widget>
-        </item>
         <item row="5" column="7">
          <widget class="QLabel" name="label_19">
           <property name="font">
@@ -465,21 +432,6 @@
           </property>
           <property name="text">
            <string>Save Current Data</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="9">
-         <widget class="QSpinBox" name="spinBox_width_ch2">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-           </font>
-          </property>
-          <property name="maximum">
-           <number>1024</number>
-          </property>
-          <property name="value">
-           <number>2</number>
           </property>
          </widget>
         </item>
@@ -589,21 +541,6 @@
           </property>
           <property name="value">
            <double>0.100000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="9">
-         <widget class="QSpinBox" name="spinBox_averaging_ch2">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-           </font>
-          </property>
-          <property name="maximum">
-           <number>24</number>
-          </property>
-          <property name="value">
-           <number>1</number>
           </property>
          </widget>
         </item>
@@ -840,7 +777,83 @@
            <number>24</number>
           </property>
           <property name="value">
+           <number>1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="8">
+         <widget class="QSpinBox" name="spinBox_averaging_ch2">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="maximum">
+           <number>24</number>
+          </property>
+          <property name="value">
+           <number>1</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="8">
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_timeScale">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="decimals">
            <number>3</number>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.050000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="8">
+         <widget class="QSpinBox" name="spinBox_width_ch1">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="maximum">
+           <number>1024</number>
+          </property>
+          <property name="value">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="8">
+         <widget class="QSpinBox" name="spinBox_width_ch2">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="maximum">
+           <number>1024</number>
+          </property>
+          <property name="value">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="9">
+         <widget class="QComboBox" name="comboBox_triggerSweep">
+          <property name="editable">
+           <bool>false</bool>
+          </property>
+          <property name="currentText">
+           <string notr="true"/>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
           </property>
          </widget>
         </item>
