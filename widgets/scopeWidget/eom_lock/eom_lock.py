@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import traceback
 
 import numpy
@@ -20,8 +21,6 @@ from widgets.scopeWidget.scope import Scope_GUI
 # The EOM has a tendency to drift
 class EOMLockGUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
-    RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
     OUTPUT_CHANNEL = 1  # There is 1 and 2 for the Red Pitaya
     DBG_CHANNEL = 2
     SINE_FUNC = 0
@@ -29,12 +28,12 @@ class EOMLockGUI(Scope_GUI):
     DC_FUNC = 5
 
     def __init__(self, parent=None, ui=None, debugging=False, simulation=True):
-        self.lockOn = True
+        self.lock_on = False
         self.x = 0
         self.prev_extinction_ratio = 0
-        self.step = 0.2
-        self.weight = 1.0
-        self.threshold = 1000  # dB
+        self.step = None  # Get overiden by UI anyways...
+        self.weight = None  # Get overiden by UI anyways...
+        self.er_threshold = None  # Get overiden by UI anyways...
         self.flag = 1
         self.offset = -0.013
 
@@ -56,13 +55,24 @@ class EOMLockGUI(Scope_GUI):
         # Get the UI file for EOM lock - the generic frame
         ui = os.path.join(os.path.dirname(__file__), "eomLockWidgetGUI.ui") if ui is None else ui
 
-        super().__init__(Parent=parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.RED_PITAYA_HOST)
+        self.red_pitaya_host = CONFIG["red-pitaya-host"]
+        super().__init__(Parent=parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host)
+
 
         # Add outputs control UI
         self.outputsFrame = self.frame_4
         ui_outputs = os.path.join(os.path.dirname(__file__), ".\\eomLockCustomControl.ui")
         uic.loadUi(ui_outputs, self.frame_4)  # place outputs in frame 4
+
+        # Wait 1 sec - allow the UI to load before we connect and read its values
+        time.sleep(1.0)
+
+        # Bind events of UI controls to our update functions
         self.connectOutputsButtonsAndSpinboxes()
+
+        # Update the default lock settings based on the UI defaults
+        self.update_step_and_weight()
+
 
     def configure_input_channels(self):
         self.rp.set_ac_dc_coupling_state(1, "DC")
@@ -106,6 +116,10 @@ class EOMLockGUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Threshold.valueChanged.connect(self.update_step_and_weight)
 
+        # Output buttons
+        self.outputsFrame.pushButton_StartLock.clicked.connect(self.toggle_lock)
+        self.outputsFrame.pushButton_Reset.clicked.connect(self.reset_lock)
+
         # Connect checkboxes that enable/disable the output channels
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
         self.outputsFrame.checkBox_ch2OuputState.stateChanged.connect(self.updateOutputChannels)
@@ -119,9 +133,7 @@ class EOMLockGUI(Scope_GUI):
     def update_step_and_weight(self):
         self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
         self.weight = float(self.outputsFrame.doubleSpinBox_Weight.value())
-        # TODO: enable this after change in QT-Designer
-        #self.threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
-
+        self.er_threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
 
     def updateOutputChannels(self):
         self.changedOutputs = True
@@ -219,17 +231,36 @@ class EOMLockGUI(Scope_GUI):
         except Exception as e:
             tb = traceback.format_exc()
             print(tb)
-            pass
 
         # --------- Lock -----------
-        if self.lockOn:
-            self.lock()
+        self.perform_lock()
 
         # -------- Save Data  --------:
         if self.checkBox_saveData.isChecked():
             self.saveCurrentDataClicked()
 
-    def lock(self):
+    # We toggle the state and change the button text
+    # Note: we deliberately don't zero the DC out as we want to leave it the way it was
+    #       when we stopped the locking
+    def toggle_lock(self):
+        if self.lock_on:
+            self.outputsFrame.pushButton_StartLock.setText('Start Lock')
+            self.outputsFrame.ExtinctionRatioLabel.setText("[Lock Off]")
+            self.rp.print('Lock stopped.', 'blue')
+        else:
+            self.outputsFrame.pushButton_StartLock.setText('Stop Lock')
+            self.rp.print('Lock started.', 'blue')
+
+        self.lock_on = not self.lock_on
+
+    def reset_lock(self):
+        pass
+
+    def perform_lock(self):
+
+        if not self.lock_on:
+            return
+
         # Find the peaks - high and low
         min = self.channel1_data.min()-self.offset
         max = self.channel1_data.max()-self.offset
@@ -241,9 +272,10 @@ class EOMLockGUI(Scope_GUI):
 
         extinction_ratio = max/min
 
-        if extinction_ratio > self.threshold:
-            pass
+        if extinction_ratio > self.er_threshold:
+            style = "background-color: yellow;border: 1px solid black;"
         elif extinction_ratio < self.prev_extinction_ratio:
+            style = "background-color: white;border: 0px solid black;"
             self.flag = -self.flag
 
         self.x = self.x + self.step * self.weight * self.flag
@@ -259,7 +291,8 @@ class EOMLockGUI(Scope_GUI):
         self.prev_extinction_ratio = extinction_ratio
 
         # Output the extinction ratio to the GUI
-        self.outputsFrame.ExtinctionRatioLabel.setText("ER: %.2f dB" % self.x)
+        self.outputsFrame.ExtinctionRatioLabel.setText("ER: %.2f  V: %.2f" % (extinction_ratio, self.x))
+        self.outputsFrame.ExtinctionRatioLabel.setStyleSheet(style)
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):
@@ -287,8 +320,16 @@ class EOMLockGUI(Scope_GUI):
 
 if __name__ == "__main__":
     app = QApplication([])
-    simulation = False if os.getlogin() == 'drorg' else True
+    login = os.getlogin()
+    simulation = False  # This is only relevant for PGC-Widget
 
+    RED_PITAYA_HOST_125 = "rp-f08c36.local"  # Small one (125)
+    RED_PITAYA_HOST_250 = "rp-ffff3e.local"  # Large one (250)
+
+    CONFIG = {
+        "login": login,
+        "red-pitaya-host": RED_PITAYA_HOST_125 if login == 'drorg' else RED_PITAYA_HOST_250
+    }
     window = EOMLockGUI(simulation=simulation, debugging=True)
     window.show()
     app.exec_()

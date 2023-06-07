@@ -67,7 +67,7 @@
        </font>
       </property>
       <property name="text">
-       <string>Extinction Ratio</string>
+       <string>[Lock Off]</string>
       </property>
       <property name="scaledContents">
        <bool>false</bool>
@@ -235,25 +235,6 @@
       </property>
      </widget>
     </item>
-    <item row="11" column="1">
-     <widget class="QCheckBox" name="checkBox_ac_dc_OuputState">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="font">
-       <font>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>AC/DC</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
     <item row="8" column="0">
      <widget class="QLabel" name="label_23">
       <property name="font">
@@ -268,21 +249,8 @@
       </property>
      </widget>
     </item>
-    <item row="11" column="0">
-     <widget class="QLabel" name="label_6">
-      <property name="font">
-       <font>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Coupling</string>
-      </property>
-     </widget>
-    </item>
     <item row="5" column="3" colspan="2">
-     <widget class="QPushButton" name="pushButton_selectPeak">
+     <widget class="QPushButton" name="pushButton_Reset">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -339,14 +307,17 @@
        </font>
       </property>
       <property name="minimum">
-       <double>-50.000000000000000</double>
+       <double>-100.000000000000000</double>
       </property>
       <property name="maximum">
-       <double>50.000000000000000</double>
+       <double>100.000000000000000</double>
       </property>
       <property name="singleStep">
        <double>1.000000000000000</double>
       </property>
+      <property name="value">
+       <double>80.000000000000000</double>
+      </property>  
      </widget>
     </item>
     <item row="2" column="2">
@@ -482,7 +453,7 @@
     </item>
     <item row="5" column="0" colspan="3">
      <widget class="QPushButton" name="pushButton_StartLock">
-      <property name="font">
+      <property name="font">  
        <font>
         <pointsize>10</pointsize>
         <weight>75</weight>
@@ -490,7 +461,7 @@
        </font>
       </property>
       <property name="text">
-       <string>LOCK</string>
+       <string>Start Lock</string>
       </property>
      </widget>
     </item>
