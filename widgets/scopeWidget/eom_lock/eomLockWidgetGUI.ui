@@ -343,14 +343,20 @@
          </widget>
         </item>
         <item row="2" column="7">
-         <widget class="QLabel" name="label_5">
+         <widget class="QLabel" name="label_timeDiv">
           <property name="font">
            <font>
             <pointsize>10</pointsize>
            </font>
           </property>
+          <property name="mouseTracking">
+           <bool>true</bool>
+          </property>
+          <property name="toolTip">
+           <string>Click to toggle ms/us/ns</string>
+          </property>
           <property name="text">
-           <string>Time/Div [ms]:</string>
+           <string>Time/Div [us]:</string>
           </property>
          </widget>
         </item>
@@ -714,6 +720,12 @@
         </item>
         <item row="2" column="1">
          <widget class="QComboBox" name="comboBox_triggerSource">
+          <property name="currentText">
+           <string>CH2</string>
+          </property>
+          <property name="currentIndex">
+           <number>1</number>
+          </property>
           <item>
            <property name="text">
             <string>CH1</string>
@@ -807,10 +819,10 @@
            </font>
           </property>
           <property name="maximum">
-           <number>24</number>
+           <number>100</number>
           </property>
           <property name="value">
-           <number>1</number>
+           <number>50</number>
           </property>
          </widget>
         </item>
@@ -822,7 +834,7 @@
            </font>
           </property>
           <property name="maximum">
-           <number>24</number>
+           <number>100</number>
           </property>
           <property name="value">
            <number>1</number>

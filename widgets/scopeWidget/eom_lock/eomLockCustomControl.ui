@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>757</width>
-    <height>583</height>
+    <width>956</width>
+    <height>704</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,27 +38,8 @@
     <property name="bottomMargin">
      <number>1</number>
     </property>
-    <item row="9" column="2">
-     <widget class="QDoubleSpinBox" name="doubleSpinBox_ch2OutAmp">
-      <property name="minimum">
-       <double>-5.000000000000000</double>
-      </property>
-      <property name="maximum">
-       <double>5.000000000000000</double>
-      </property>
-      <property name="singleStep">
-       <double>0.500000000000000</double>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="0" colspan="2">
-     <widget class="QLabel" name="ExtinctionRatioLabel">
-      <property name="minimumSize">
-       <size>
-        <width>34</width>
-        <height>0</height>
-       </size>
-      </property>
+    <item row="0" column="0" colspan="4">
+     <widget class="QLabel" name="label_LockSettings">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -67,18 +48,15 @@
        </font>
       </property>
       <property name="text">
-       <string>[Lock Off]</string>
-      </property>
-      <property name="scaledContents">
-       <bool>false</bool>
+       <string>EOM Lock Settings</string>
       </property>
       <property name="alignment">
-       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
     <item row="3" column="0">
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="label_Threshold">
       <property name="minimumSize">
        <size>
         <width>34</width>
@@ -103,60 +81,42 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="0" colspan="4">
-     <widget class="QLabel" name="label_4">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
+    <item row="10" column="2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_ch2OutAmp">
+      <property name="minimum">
+       <double>-5.000000000000000</double>
       </property>
-      <property name="text">
-       <string>EOM Lock Settings</string>
+      <property name="maximum">
+       <double>5.000000000000000</double>
       </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
+      <property name="singleStep">
+       <double>0.500000000000000</double>
       </property>
      </widget>
     </item>
-    <item row="7" column="4">
-     <widget class="QLabel" name="label_35">
+    <item row="1" column="2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_Step">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
        </font>
       </property>
-      <property name="text">
-       <string>Offset 
-[V]</string>
+      <property name="minimum">
+       <double>-10.000000000000000</double>
       </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
+      <property name="maximum">
+       <double>10.000000000000000</double>
       </property>
-     </widget>
-    </item>
-    <item row="6" column="0" colspan="6">
-     <widget class="QLabel" name="label_37">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
+      <property name="singleStep">
+       <double>0.100000000000000</double>
       </property>
-      <property name="text">
-       <string>Outputs</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
+      <property name="value">
+       <double>0.050000000000000</double>
       </property>
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="label_Step">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -184,8 +144,25 @@
       </property>
      </widget>
     </item>
+    <item row="7" column="0" colspan="6">
+     <widget class="QLabel" name="label_37">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Outputs</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
     <item row="2" column="0">
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="label_Weight">
       <property name="minimumSize">
        <size>
         <width>34</width>
@@ -207,35 +184,32 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="2">
-     <widget class="QDoubleSpinBox" name="doubleSpinBox_Step">
+    <item row="8" column="4">
+     <widget class="QLabel" name="label_35">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
        </font>
       </property>
-      <property name="minimum">
-       <double>-10.000000000000000</double>
+      <property name="text">
+       <string>Offset 
+[V]</string>
       </property>
-      <property name="maximum">
-       <double>10.000000000000000</double>
-      </property>
-      <property name="singleStep">
-       <double>0.100000000000000</double>
-      </property>
-      <property name="value">
-       <double>0.200000000000000</double>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
-    <item row="8" column="1">
+    <item row="9" column="1">
      <widget class="QCheckBox" name="checkBox_ch1OuputState">
       <property name="text">
        <string/>
       </property>
      </widget>
     </item>
-    <item row="8" column="0">
+    <item row="9" column="0">
      <widget class="QLabel" name="label_23">
       <property name="font">
        <font>
@@ -249,21 +223,7 @@
       </property>
      </widget>
     </item>
-    <item row="5" column="3" colspan="2">
-     <widget class="QPushButton" name="pushButton_Reset">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Reset</string>
-      </property>
-     </widget>
-    </item>
-    <item row="9" column="4">
+    <item row="10" column="4">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch2OutOffset">
       <property name="minimum">
        <double>-5.000000000000000</double>
@@ -276,10 +236,31 @@
       </property>
      </widget>
     </item>
-    <item row="9" column="3">
+    <item row="10" column="3">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch2OutFreq"/>
     </item>
-    <item row="8" column="4">
+    <item row="3" column="2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_Threshold">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+       </font>
+      </property>
+      <property name="minimum">
+       <double>0.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>400.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>1.000000000000000</double>
+      </property>
+      <property name="value">
+       <double>380.000000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="4">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch1OutOffset">
       <property name="minimum">
        <double>-7.000000000000000</double>
@@ -290,34 +271,6 @@
       <property name="singleStep">
        <double>0.500000000000000</double>
       </property>
-     </widget>
-    </item>
-    <item row="9" column="1">
-     <widget class="QCheckBox" name="checkBox_ch2OuputState">
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="2">
-     <widget class="QDoubleSpinBox" name="doubleSpinBox_Threshold">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-       </font>
-      </property>
-      <property name="minimum">
-       <double>-100.000000000000000</double>
-      </property>
-      <property name="maximum">
-       <double>100.000000000000000</double>
-      </property>
-      <property name="singleStep">
-       <double>1.000000000000000</double>
-      </property>
-      <property name="value">
-       <double>80.000000000000000</double>
-      </property>  
      </widget>
     </item>
     <item row="2" column="2">
@@ -341,55 +294,17 @@
       </property>
      </widget>
     </item>
-    <item row="8" column="2">
-     <widget class="QDoubleSpinBox" name="doubleSpinBox_ch1OutAmp">
-      <property name="minimum">
-       <double>-5.000000000000000</double>
-      </property>
-      <property name="maximum">
-       <double>5.000000000000000</double>
-      </property>
-      <property name="singleStep">
-       <double>0.500000000000000</double>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="5">
-     <widget class="QLabel" name="label_36">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
+    <item row="10" column="1">
+     <widget class="QCheckBox" name="checkBox_ch2OuputState">
       <property name="text">
-       <string>Func.</string>
+       <string/>
       </property>
      </widget>
     </item>
-    <item row="8" column="3">
+    <item row="9" column="3">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch1OutFreq"/>
     </item>
-    <item row="7" column="2">
-     <widget class="QLabel" name="label_22">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Amp. 
-[V]</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="3">
+    <item row="8" column="3">
      <widget class="QLabel" name="label_25">
       <property name="font">
        <font>
@@ -407,7 +322,52 @@
       </property>
      </widget>
     </item>
-    <item row="9" column="5">
+    <item row="8" column="2">
+     <widget class="QLabel" name="label_22">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Amp. 
+[V]</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="5">
+     <widget class="QLabel" name="label_36">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Func.</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_ch1OutAmp">
+      <property name="minimum">
+       <double>-5.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>5.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.500000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="5">
      <widget class="QComboBox" name="comboBox_ch2OutFunction">
       <item>
        <property name="text">
@@ -451,21 +411,7 @@
       </item>
      </widget>
     </item>
-    <item row="5" column="0" colspan="3">
-     <widget class="QPushButton" name="pushButton_StartLock">
-      <property name="font">  
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Start Lock</string>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="5">
+    <item row="9" column="5">
      <widget class="QComboBox" name="comboBox_ch1OutFunction">
       <item>
        <property name="text">
@@ -509,7 +455,7 @@
       </item>
      </widget>
     </item>
-    <item row="9" column="0">
+    <item row="10" column="0">
      <widget class="QLabel" name="label_24">
       <property name="font">
        <font>
@@ -520,6 +466,112 @@
       </property>
       <property name="text">
        <string>Ch 2 </string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QLabel" name="label_Offset">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Offset</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="QDoubleSpinBox" name="doubleSpinBox_Offset">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+       </font>
+      </property>
+      <property name="decimals">
+       <number>3</number>
+      </property>
+      <property name="minimum">
+       <double>-3.000000000000000</double>
+      </property>
+      <property name="maximum">
+       <double>3.000000000000000</double>
+      </property>
+      <property name="singleStep">
+       <double>0.001000000000000</double>
+      </property>
+      <property name="value">
+       <double>-0.001000000000000</double>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="2">
+     <widget class="QPushButton" name="pushButton_StartLock">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Start Lock</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="2">
+     <widget class="QPushButton" name="pushButton_Reset">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Reset</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="4">
+     <widget class="QLabel" name="label_ExtinctionRatio">
+      <property name="minimumSize">
+       <size>
+        <width>34</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="scaledContents">
+       <bool>false</bool>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3">
+     <widget class="QPushButton" name="pushButton_nudgeUp">
+      <property name="text">
+       <string>N-Up</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="pushButton_nudgeDown">
+      <property name="text">
+       <string>N-Dw</string>
       </property>
      </widget>
     </item>

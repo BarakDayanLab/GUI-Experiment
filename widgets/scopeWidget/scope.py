@@ -28,6 +28,8 @@ from widgets.quantumWidget import QuantumWidget
 
 
 class Scope_GUI(QuantumWidget):
+    SCALE_OPTIONS = ['ms', 'us', 'ns']
+
     def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, debugging=False):
         if Parent is not None:
             self.Parent = Parent
@@ -48,6 +50,7 @@ class Scope_GUI(QuantumWidget):
         self.isSavingNDataFiles = False
         self.signalLength = self.scope_parameters['OSC_DATA_SIZE']['value']  # 1024 by default
         self.indx_to_freq = [0]
+        self.time_scale_units = 1  # 0=ms, 1=us, 2=ns
 
         # -- connect --
         self.connectButtonsAndSpinboxes()
@@ -65,9 +68,21 @@ class Scope_GUI(QuantumWidget):
         self.checkBox_parameters.clicked.connect(self.showHideParametersWindow)
         self.checkBox_CH1Inverse.clicked.connect(self.setInverseChns)
         self.checkBox_CH2Inverse.clicked.connect(self.setInverseChns)
+        self.label_timeDiv.mousePressEvent = self.setTimeDiv
 
         self.connect_custom_ui_controls()
 
+    # Switch the scales from millis -> micros -> nanos
+    def setTimeDiv(self, event):
+        if event.type() != 2:
+            return  # Not mouse click
+
+        self.time_scale_units = (self.time_scale_units + 1) % len(self.SCALE_OPTIONS)
+
+        # Set the label
+        self.label_timeDiv.setText("Time/Div [%s]" % self.SCALE_OPTIONS[self.time_scale_units])
+
+        self.updateTimeScale(True)
 
     def setInverseChns(self):
         self.rp.set_inverseChannel(ch=1, value = self.checkBox_CH1Inverse.isChecked())
@@ -83,9 +98,9 @@ class Scope_GUI(QuantumWidget):
 
     def updateChannelCoupling(self):
         ch1_coupling = self.comboBox_channel1Coupling.currentText()  # text
-        self.rp.set_ac_dc_coupling_state(channel=1, coupling=ch1_coupling.replace(' Coupling', ''), verbose=True)
+        self.rp.set_inputAcDcCoupling(channel=1, coupling=ch1_coupling.replace(' Coupling', ''), verbose=True)
         ch2_coupling = self.comboBox_channel2Coupling.currentText()  # text
-        self.rp.set_ac_dc_coupling_state(channel=2, coupling=ch2_coupling.replace(' Coupling', ''), verbose=True)
+        self.rp.set_inputAcDcCoupling(channel=2, coupling=ch2_coupling.replace(' Coupling', ''), verbose=True)
 
     def updateTriggerSource(self):
         trigger_source = self.comboBox_triggerSource.currentText()  # text
@@ -105,10 +120,12 @@ class Scope_GUI(QuantumWidget):
         # self.print_to_dialogue("Trigger delay changed to %f ms; Source: %s; Level: %2.f [V]" % (t,s,l))
 
     # Update the RedPitaya with the timescale as appears in UI
-    def updateTimeScale(self):
+    def updateTimeScale(self, verbose=False):
         t = float(self.doubleSpinBox_timeScale.text())
+        factor = pow(10,self.time_scale_units*3)
+        t = t / factor  # us - like dividing by 10^3
         self.rp.set_timeScale(t)
-        # self.print_to_dialogue("Time scale changed to %f ms" % t)
+        #if verbose: self.print_to_dialogue("Time scale changed to %f %s" % (t, self.SCALE_OPTION[self.time_scale_units]))
 
     # Update the average sampling for the two channels
     # (update the locker subclass, so it can zero its data buffers)

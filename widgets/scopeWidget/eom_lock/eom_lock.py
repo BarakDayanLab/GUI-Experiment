@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 
 from widgets.scopeWidget.scope import Scope_GUI
 
+# TODO:
+# 1) Print on UI the RedPitaya address
+# 2) Ch1/Ch2 fixed voltages
+
 
 # We have the AWG send a modulating signal to the EOM
 # The EOM has a tendency to drift
@@ -23,19 +27,30 @@ class EOMLockGUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
     OUTPUT_CHANNEL = 1  # There is 1 and 2 for the Red Pitaya
     DBG_CHANNEL = 2
-    SINE_FUNC = 0
-    SQUARE_FUNC = 1
-    DC_FUNC = 5
+    INPUT_CHANNEL1 = 1
+    INPUT_CHANNEL2 = 2
 
     def __init__(self, parent=None, ui=None, debugging=False, simulation=True):
         self.lock_on = False
-        self.x = 0
-        self.prev_extinction_ratio = 0
-        self.step = None  # Get overiden by UI anyways...
-        self.weight = None  # Get overiden by UI anyways...
-        self.er_threshold = None  # Get overiden by UI anyways...
+        self.x = 3.5
+        self.yy0 = 0
+        self.yy1_average = np.zeros(1)
+        self.step = None  # Gets overriden by UI anyways...
+        self.weight = None  # Gets overriden by UI anyways...
+        self.er_threshold = None  # Gets overriden by UI anyways...
+        self.offset = None  # Gets overriden by UI anyways... -0.001
         self.flag = 1
-        self.offset = -0.013
+        self.iteration = 0
+        self.prev_ns = time.time_ns()
+        self.nudging = None  # Flag for one-time nudging of the step parameter
+
+        # For Debug purposes - scan DC amplitudes
+        self.sweep_mode = True
+        self.svolts_delta = 0.025
+        self.svolts = -4.5
+        self.extintion_ratio_vec = []
+        self.min_vec = []
+        self.out_vec = []
 
         if parent is not None:
             self.parent = parent
@@ -75,28 +90,27 @@ class EOMLockGUI(Scope_GUI):
 
 
     def configure_input_channels(self):
-        self.rp.set_ac_dc_coupling_state(1, "DC")
-        self.rp.set_ac_dc_coupling_state(2, "DC")
-        pass
+        self.rp.set_inputState(self.INPUT_CHANNEL1, True)
+        self.rp.set_inputState(self.INPUT_CHANNEL2, True)
+        self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL1, "DC")
+        self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL2, "DC")
 
     def configure_output_channels(self):
-        # An example of sending out a SQUARE_FUNC:
-        # self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
-        # self.rp.set_outputFunction(self.OUTPUT_CHANNEL, self.SQUARE_FUNC)  # 0=SINE 1=SQUARE 5=DC
-        # self.rp.set_outputTrigger(self.OUTPUT_CHANNEL, 0)  # Internal Trigger
-        # self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0.8)
-        # self.rp.set_outputFrequency(self.OUTPUT_CHANNEL, 1)  # 1 Hz
+        # Set channel 1
+        self.rp.set_outputGain(self.OUTPUT_CHANNEL, 'X5', True)
+        self.rp.set_outputImpedance(self.OUTPUT_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
+        self.rp.set_outputFunction(self.OUTPUT_CHANNEL, 8)  # 0=SINE 1=SQUARE 5=DC
+        self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, abs(self.svolts))
+        self.rp.set_outputOffset(self.OUTPUT_CHANNEL, 0)
+        self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
 
-        if True:
-            self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
-            self.rp.set_outputFunction(self.OUTPUT_CHANNEL, self.DC_FUNC)  # 0=SINE 1=SQUARE 5=DC
-            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, 0.8)
-
-            self.rp.set_outputState(self.DBG_CHANNEL, True)
-            self.rp.set_outputFunction(self.DBG_CHANNEL, self.DC_FUNC)  # 0=SINE 1=SQUARE 5=DC
-            self.rp.set_outputAmplitude(self.DBG_CHANNEL, 0.6)
-
-        pass
+        # Set channel 2 - debug
+        self.rp.set_outputGain(self.DBG_CHANNEL, 'X5', True)
+        self.rp.set_outputImpedance(self.DBG_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
+        self.rp.set_outputFunction(self.DBG_CHANNEL, 8)  # 0=SINE 1=SQUARE 5=DC 8=DC_NEG
+        self.rp.set_outputAmplitude(self.DBG_CHANNEL, abs(self.svolts))
+        self.rp.set_outputOffset(self.DBG_CHANNEL, 0)
+        self.rp.set_outputState(self.DBG_CHANNEL, True)
 
     # Bind the GUI elements in the Generic frame (common to all lockers)
     def connect_custom_ui_controls(self):
@@ -115,10 +129,13 @@ class EOMLockGUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_Step.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Threshold.valueChanged.connect(self.update_step_and_weight)
+        self.outputsFrame.doubleSpinBox_Offset.valueChanged.connect(self.update_step_and_weight)
 
         # Output buttons
         self.outputsFrame.pushButton_StartLock.clicked.connect(self.toggle_lock)
         self.outputsFrame.pushButton_Reset.clicked.connect(self.reset_lock)
+        self.outputsFrame.pushButton_nudgeUp.clicked.connect(self.nudge_up)
+        self.outputsFrame.pushButton_nudgeDown.clicked.connect(self.nudge_down)
 
         # Connect checkboxes that enable/disable the output channels
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
@@ -134,6 +151,7 @@ class EOMLockGUI(Scope_GUI):
         self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
         self.weight = float(self.outputsFrame.doubleSpinBox_Weight.value())
         self.er_threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
+        self.offset = float(self.outputsFrame.doubleSpinBox_Offset.value())
 
     def updateOutputChannels(self):
         self.changedOutputs = True
@@ -245,10 +263,11 @@ class EOMLockGUI(Scope_GUI):
     def toggle_lock(self):
         if self.lock_on:
             self.outputsFrame.pushButton_StartLock.setText('Start Lock')
-            self.outputsFrame.ExtinctionRatioLabel.setText("[Lock Off]")
+            self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock OFF]")
             self.rp.print('Lock stopped.', 'blue')
         else:
             self.outputsFrame.pushButton_StartLock.setText('Stop Lock')
+            self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock ON]")
             self.rp.print('Lock started.', 'blue')
 
         self.lock_on = not self.lock_on
@@ -256,43 +275,110 @@ class EOMLockGUI(Scope_GUI):
     def reset_lock(self):
         pass
 
+    def nudge_up(self):
+        self.nudging = 'up'
+
+    def nudge_down(self):
+        self.nudging = 'down'
+
+    # Insert new value into an averaging bin and return the average
+    def average_yy1(self, yy1):
+        self.yy1_average[:-1] = self.yy1_average[1:]
+        self.yy1_average[-1] = yy1
+        avg = np.average(self.yy1_average)
+        return avg
+
+    def get_milliseconds_delta(self):
+        ns = time.time_ns()
+        delta = (ns - self.prev_ns) / 1_000_000
+        self.prev_ns = ns
+        return round(delta)
+
     def perform_lock(self):
 
-        if not self.lock_on:
+        self.iteration = self.iteration + 1
+        if self.iteration % 5 > 0:
             return
 
-        # Find the peaks - high and low
-        min = self.channel1_data.min()-self.offset
-        max = self.channel1_data.max()-self.offset
-
+        # Find min/max
+        min = self.channel1_avg_data.min()-self.offset
+        max = self.channel1_avg_data.max()-self.offset
         if min < 0:
-            min = 0.01  # Avoid having extinction rate as INF
+            min = 0.001  # Avoid having extinction rate as INF
         if max < 0:
             max = 0
 
+        # Calculate extinction ratio and yy1
         extinction_ratio = max/min
+        yy1 = self.average_yy1(extinction_ratio)
 
+        # Handle threshold
         if extinction_ratio > self.er_threshold:
-            style = "background-color: yellow;border: 1px solid black;"
-        elif extinction_ratio < self.prev_extinction_ratio:
+            style = "background-color: green;border: 1px solid black;"
+        else:
             style = "background-color: white;border: 0px solid black;"
-            self.flag = -self.flag
 
-        self.x = self.x + self.step * self.weight * self.flag
-
-        if self.x >= 5.0:
-            self.x = 5.0
-        elif self.x <= -5.0:
-            self.x = -5.0
-
-        self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
-        self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
-
-        self.prev_extinction_ratio = extinction_ratio
+        delta_millis = self.get_milliseconds_delta()
+        sample_rate_khz = 1/delta_millis*1000
 
         # Output the extinction ratio to the GUI
-        self.outputsFrame.ExtinctionRatioLabel.setText("ER: %.2f  V: %.2f" % (extinction_ratio, self.x))
-        self.outputsFrame.ExtinctionRatioLabel.setStyleSheet(style)
+        if not self.sweep_mode:
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.1f" % (extinction_ratio, self.x, yy1, sample_rate_khz)
+        else:
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.1f" % (extinction_ratio, self.x, yy1, self.svolts)
+        self.outputsFrame.label_ExtinctionRatio.setText(txt)
+        self.outputsFrame.label_ExtinctionRatio.setStyleSheet(style)
+
+        # If we're locked - re-calc output and send it out
+        if self.lock_on:
+            # Should we change the sign of the step?
+            if yy1 < self.yy0:
+                self.flag = -self.flag
+
+            if self.nudging == 'up':
+                weight = self.weight
+                self.nudging = None
+            elif self.nudging == 'down':
+                weight = -self.weight
+                self.nudging = None
+            else:
+                weight = 1.0
+
+            # Re-calc output
+            self.x = self.x + self.step * weight * self.flag
+
+            self.nudging = False
+
+            # Defend output from outliers
+            if self.x >= 5.0:
+                self.x = 4.5
+            elif self.x <= 0:
+                self.x = 0.001
+
+            # Handle Sweep mode
+            if self.sweep_mode:
+                self.sweep(extinction_ratio)
+            else:
+                # Set the RP output amplitude
+                self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
+                self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
+
+            self.yy0 = yy1
+
+    def sweep(self, extinction_ratio):
+        # Increment volts
+        self.svolts = self.svolts + self.svolts_delta
+
+        # Set the output accordingly
+        self.rp.set_outputDCAmplitude(self.OUTPUT_CHANNEL, self.svolts)
+        self.rp.set_outputDCAmplitude(self.DBG_CHANNEL, self.svolts)
+
+        self.extintion_ratio_vec.append(extinction_ratio)
+        self.min_vec.append(min)
+        self.out_vec.append(self.svolts)
+
+        # Change the sign of the delta
+        self.svolts_delta = -self.svolts_delta if abs(self.svolts) > 4.5 else self.svolts_delta
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):

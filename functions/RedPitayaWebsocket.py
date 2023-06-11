@@ -191,7 +191,7 @@ class Redpitaya:
     def set_timeScale(self, t):
         """Set time scale in mili-sec."""
         # Note: this is time scale per 1 division. There are 10 divisions (!)
-        self.new_parameters['OSC_TIME_SCALE'] = {'value': str(t)} # note strange: this (float) is converted to string
+        self.new_parameters['OSC_TIME_SCALE'] = {'value': str(t)}  # note strange: this (float) is converted to string
 
     def set_yScale(self, v, ch=1):
         if ch < 1 or ch > 2: return
@@ -228,19 +228,29 @@ class Redpitaya:
         else:
             print("Please choose average from "+str(options))
 
-    def set_ac_dc_coupling_state(self, channel=1, coupling=0, verbose=False):
+    def set_inputState(self, channel=1, state=True, verbose=False):
+        if verbose: self.print('Setting input channel %d to %s' % (channel, state))
+        self.new_parameters['CH%d_SHOW' % channel] = {'value': bool(state)}
+
+    def set_inputAcDcCoupling(self, channel=1, coupling=0, verbose=False):
         couplingMap = ['AC', 'DC']
         if type(coupling) is str and coupling in couplingMap: coupling = couplingMap.index(coupling)
-        if verbose: self.print('Setting coupling of channel %d to %s' % (channel, couplingMap[coupling]), color='green')
+        if verbose: self.print('Setting coupling of input channel %d to %s' % (channel, couplingMap[coupling]), color='green')
         self.new_parameters['OSC_CH%d_IN_AC_DC' % channel] = {'value': str(coupling)}
 
+    def set_outputImpedance(self, output=1, impedance=1, verbose=False):
+        if verbose: self.print('Setting output channel %d impedance to %s' % (output, impedance))
+        impedancesMap = ['HI_Z', '50_OHM']
+        if type(impedance) is str and impedance in impedancesMap: impedance = impedancesMap.index(impedance)
+        self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(impedance)}  # set high impedance; allows for higher outputs
+
     def set_outputState(self, output=1, state=True, verbose=False):
-        if verbose: self.print('Setting channel %d output to %s' % (output, state))
+        if verbose: self.print('Setting output channel %d to %s' % (output, state))
         self.new_parameters['OUTPUT%d_STATE' % output] = {'value': bool(state)}
-        self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(1)}  # set high impedance; allows for higher outputs
+        #self.new_parameters['SOUR%d_IMPEDANCE' % output] = {'value': int(1)}  # set high impedance; allows for higher outputs
 
     def set_outputFunction(self, output=1, function=0, verbose=False):
-        functionsMap = ['SINE', 'SQUARE', 'TRIANGLE', 'SAWU', 'SAWD', 'DC', 'DC NEG', 'PWM']
+        functionsMap = ['SINE', 'SQUARE', 'TRIANGLE', 'SAWU', 'SAWD', 'DC', 'PWM', 'NA', 'DC NEG']  # "NA" - since we are not sure what option #7 is doing...
         if type(function) is str and function in functionsMap: function = functionsMap.index(function)
         if verbose: print('Setting output function of channel %d to %s' % (output, functionsMap[function]))
 
@@ -261,6 +271,15 @@ class Redpitaya:
         self.new_parameters['SOUR%d_VOLT' % output] = {'value': str(v)}
         # self.print('Output %d amp changed to %s volts.' % (int(output), str(v)))
 
+    # This function assumes the wave function is DC. If voltage is negative, it will switch it to DC_NEG
+    def set_outputDCAmplitude(self, output=1, v=0):  # Set output amplitude, in volts.
+        if v > 5.01 or v < -5.01:
+            self.print("Warning! output voltage out of range!", color='red')
+            return
+        self.new_parameters['SOUR%d_VOLT' % output] = {'value': str(abs(v))}  # Even if voltage is negative, RP expects a positive value
+        function = 5 if v > 0 else 8  # "DC" / "DC_NEG"
+        self.new_parameters['SOUR%d_FUNC' % output] = {'value': str(function)}
+
     def set_outputOffset(self, output=1, v=0):  # Set output offset, in volts.
         if v > 5.01 or v < -5.01:
             self.print("Warning! output voltage out of range!", color='red')
@@ -279,8 +298,11 @@ class Redpitaya:
             return
         self.new_parameters['SOUR%d_PHAS' % output] = {'value': str(deg)}
 
-
-#import matplotlib.pyplot as plt # TODO for debugging
+    def set_outputGain(self, output=1, gain=0, verbose=False):
+        if verbose: self.print('Setting channel %d output gain to %s' % (output, gain))
+        gainMap = ['X1', 'X5']
+        if type(gain) is str and gain in gainMap: gain = gainMap.index(gain)
+        self.new_parameters['SOUR%d_GAIN' % output] = {'value': int(gain)}  # set high impedance; allows for higher outputs
 
 if __name__ == "__main__":
     # rp1 = Redpitaya("rp-f08a95.local")  # sigma +/-
