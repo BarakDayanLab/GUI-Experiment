@@ -917,6 +917,30 @@
           </item>
          </widget>
         </item>
+        <item row="3" column="9">
+         <widget class="QComboBox" name="comboBox_triggerSlope">
+          <property name="editable">
+           <bool>false</bool>
+          </property>
+          <property name="currentText">
+           <string notr="true">Trg:Rising</string>
+          </property>
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <item>
+           <property name="text">
+            <string>Trg:Rising</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Trg:Falling</string>
+           </property>
+          </item>
+	  
+         </widget>
+        </item>	
         <item row="1" column="9">
          <widget class="QComboBox" name="comboBox_channel2Coupling">
           <property name="currentText">

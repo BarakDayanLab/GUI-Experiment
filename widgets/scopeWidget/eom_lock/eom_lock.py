@@ -119,6 +119,7 @@ class EOMLockGUI(Scope_GUI):
         # Connect the trigger related combo boxes - Channel and Sweep
         self.comboBox_triggerSource.currentTextChanged.connect(self.updateTriggerSource)
         self.comboBox_triggerSweep.currentTextChanged.connect(self.updateTriggerSweep)
+        self.comboBox_triggerSlope.currentTextChanged.connect(self.updateTriggerSlope)
 
         self.comboBox_channel1Coupling.currentTextChanged.connect(self.updateChannelCoupling)
         self.comboBox_channel2Coupling.currentTextChanged.connect(self.updateChannelCoupling)
@@ -167,6 +168,16 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
         self.rp.updateParameters()
 
+    # Find the drop/raise points
+    def check_signal(self, signal):
+        signal = np.array(signal)
+
+        # Iterate over all points and calc their delta
+        p = np.diff(signal)
+
+        i = np.argmax(p>10e-5)
+
+        pass
 
     def update_scope(self, data, parameters):
 
@@ -199,6 +210,9 @@ class EOMLockGUI(Scope_GUI):
         self.Avg_indx = self.Avg_indx + 1
 
         self.changedOutputs = False
+
+        # Check signal
+        drop_rise_points = self.check_signal(data[0])
 
         # ---------------- Average data  ----------------
         # Calculate average data:

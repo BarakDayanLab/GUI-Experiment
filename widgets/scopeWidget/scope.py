@@ -110,6 +110,10 @@ class Scope_GUI(QuantumWidget):
         trigger_sweep = self.comboBox_triggerSweep.currentText()  # get sweep policy (SINGLE, AUTO, NORMAL
         self.rp.set_triggerSweep(trigger_sweep.replace('Trg:', '').upper(), True)
 
+    def updateTriggerSlope(self):
+        trigger_slope = self.comboBox_triggerSlope.currentText()  # get trigger slope (RISING, FALLING)
+        self.rp.set_triggerSlope(trigger_slope.replace('Trg:', '').upper(), True)
+
     # TODO: Separate this to 2 functions
     # Update the Red Pitaya with trigger settings as appears in UI
     def updateTriggerDelay(self):
@@ -144,6 +148,7 @@ class Scope_GUI(QuantumWidget):
         self.updateTriggerDelay()
         self.updateTriggerSweep()
         self.updateTriggerSource()
+        self.updateTriggerSlope()
         self.updateTimeScale()
         self.updateAveraging()
         self.CHsUpdated = True

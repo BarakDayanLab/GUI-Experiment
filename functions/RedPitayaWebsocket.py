@@ -184,22 +184,28 @@ class Redpitaya:
         if verbose: self.print('Setting trigger delay to %d ms' % t, color='green')
         self.new_parameters['OSC_TIME_OFFSET'] = {'value': t}
 
+    def set_triggerSlope(self, slope, verbose=False):
+        slopeMap = ['FALLING', 'RISING']
+        if type(slope) is str and slope in slopeMap: slope = slopeMap.index(slope)
+        if verbose: self.print('Setting trigger slope to %s' % slopeMap[slope], color='green')
+        self.new_parameters['OSC_TRIG_SLOPE'] = {'value': str(slope)}  # note strange: this (int) is converted to string
+
     def set_inverseChannel(self, value, ch, verbose=False):
         if verbose: self.print('Setting channel %s to inverse %s' % (ch, value), color='green')
         self.new_parameters['CH%d_SHOW_INVERTED' % int(ch)] = {'value': bool(value)}
 
     def set_timeScale(self, t):
         """Set time scale in mili-sec."""
-        # Note: this is time scale per 1 division. There are 10 divisions (!)
+        # Note: this is timescale per 1 division. There are 10 divisions (!)
         self.new_parameters['OSC_TIME_SCALE'] = {'value': str(t)}  # note strange: this (float) is converted to string
 
     def set_yScale(self, v, ch=1):
         if ch < 1 or ch > 2: return
-        """Set time scale in mili-sec."""
+        """Set time scale in milli-sec."""
         # Note: this is y-scale (volt) per 1 division. There are 10 divisions (!)
         self.new_parameters['OSC_CH%d_SCALE' % int(ch)] = {'value': float(v)} # note strange: this (float) is converted to string
-        self.print('Set Y-Scale to %2.f; Channel %d' %(v, ch),color='red')
-        if float(v) != 1: self.print('WARNING: keep this value 1, unless you really know what you are doing.',color='red')
+        self.print('Set Y-Scale to %2.f; Channel %d' %(v, ch), color='red')
+        if float(v) != 1: self.print('WARNING: keep this value 1, unless you really know what you are doing.', color='red')
 
     # set y scale. value is in volts (usually, <1). There are 10 division, so 10 * value gives the limits
     #{"parameters": {"OSC_CH1_SCALE": {"value": 0.1}, "OSC_CH1_OFFSET": {"value": 0},
