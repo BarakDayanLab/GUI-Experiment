@@ -32,21 +32,22 @@ class EOMLockGUI(Scope_GUI):
 
     def __init__(self, parent=None, ui=None, debugging=False, simulation=True):
         self.lock_on = False
-        self.x = 3.5
+        self.x = 4.9
         self.yy0 = 0
         self.yy1_average = np.zeros(1)
         self.step = None  # Gets overriden by UI anyways...
-        self.weight = None  # Gets overriden by UI anyways...
+        self.nudge = None  # Gets overriden by UI anyways...
         self.er_threshold = None  # Gets overriden by UI anyways...
         self.offset = None  # Gets overriden by UI anyways... -0.001
         self.flag = 1
+        self.optimize = 'minimize'  # 'minimize' or 'maximize'
         self.iteration = 0
         self.prev_ns = time.time_ns()
         self.nudging = None  # Flag for one-time nudging of the step parameter
 
         # For Debug purposes - scan DC amplitudes
         self.sweep_mode = True
-        self.svolts_delta = 0.025
+        self.svolts_delta = 0.05
         self.svolts = -4.5
         self.extintion_ratio_vec = []
         self.min_vec = []
@@ -96,19 +97,21 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL2, "DC")
 
     def configure_output_channels(self):
+        start_voltage = self.svolts if self.sweep_mode else self.x
+
         # Set channel 1
         self.rp.set_outputGain(self.OUTPUT_CHANNEL, 'X5', True)
         self.rp.set_outputImpedance(self.OUTPUT_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
-        self.rp.set_outputFunction(self.OUTPUT_CHANNEL, 8)  # 0=SINE 1=SQUARE 5=DC
-        self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, abs(self.svolts))
+        self.rp.set_outputFunction(self.OUTPUT_CHANNEL, 'DC')  # 0=SINE 1=SQUARE 5=DC
+        self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, start_voltage)
         self.rp.set_outputOffset(self.OUTPUT_CHANNEL, 0)
         self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
 
         # Set channel 2 - debug
         self.rp.set_outputGain(self.DBG_CHANNEL, 'X5', True)
         self.rp.set_outputImpedance(self.DBG_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
-        self.rp.set_outputFunction(self.DBG_CHANNEL, 8)  # 0=SINE 1=SQUARE 5=DC 8=DC_NEG
-        self.rp.set_outputAmplitude(self.DBG_CHANNEL, abs(self.svolts))
+        self.rp.set_outputFunction(self.DBG_CHANNEL, 'DC')  # 0=SINE 1=SQUARE 5=DC 8=DC_NEG
+        self.rp.set_outputAmplitude(self.DBG_CHANNEL, start_voltage)
         self.rp.set_outputOffset(self.DBG_CHANNEL, 0)
         self.rp.set_outputState(self.DBG_CHANNEL, True)
 
@@ -150,7 +153,7 @@ class EOMLockGUI(Scope_GUI):
     # Updates the step/weight params that affect the lock mechanism
     def update_step_and_weight(self):
         self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
-        self.weight = float(self.outputsFrame.doubleSpinBox_Weight.value())
+        self.nudge = float(self.outputsFrame.doubleSpinBox_Weight.value())
         self.er_threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
         self.offset = float(self.outputsFrame.doubleSpinBox_Offset.value())
 
@@ -327,7 +330,8 @@ class EOMLockGUI(Scope_GUI):
 
         # Calculate extinction ratio and yy1
         extinction_ratio = max/min
-        yy1 = self.average_yy1(extinction_ratio)
+        #yy1 = self.average_yy1(extinction_ratio)
+        yy1 = self.average_yy1(min/max)
 
         # Handle threshold
         if extinction_ratio > self.er_threshold:
@@ -340,29 +344,27 @@ class EOMLockGUI(Scope_GUI):
 
         # Output the extinction ratio to the GUI
         if not self.sweep_mode:
-            txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.1f" % (extinction_ratio, self.x, yy1, sample_rate_khz)
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.2f" % (extinction_ratio, self.x, yy1, sample_rate_khz)
         else:
-            txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.1f" % (extinction_ratio, self.x, yy1, self.svolts)
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.2f" % (extinction_ratio, self.x, yy1, self.svolts)
         self.outputsFrame.label_ExtinctionRatio.setText(txt)
         self.outputsFrame.label_ExtinctionRatio.setStyleSheet(style)
 
         # If we're locked - re-calc output and send it out
         if self.lock_on:
             # Should we change the sign of the step?
-            if yy1 < self.yy0:
+            if self.optimize == 'minimize' and yy1 > self.yy0:
+                self.flag = -self.flag
+            elif self.optimize == 'maximize' and yy1 < self.yy0:
                 self.flag = -self.flag
 
-            if self.nudging == 'up':
-                weight = self.weight
-                self.nudging = None
-            elif self.nudging == 'down':
-                weight = -self.weight
-                self.nudging = None
-            else:
-                weight = 1.0
-
             # Re-calc output
-            self.x = self.x + self.step * weight * self.flag
+            if self.nudging == 'up':
+                self.x = self.x + self.nudge
+            elif self.nudging == 'down':
+                self.x = self.x - self.nudge
+            else:
+                self.x = self.x + self.step * self.flag
 
             self.nudging = False
 
@@ -395,7 +397,7 @@ class EOMLockGUI(Scope_GUI):
         self.out_vec.append(self.svolts)
 
         # Change the sign of the delta
-        self.svolts_delta = -self.svolts_delta if abs(self.svolts) > 4.5 else self.svolts_delta
+        self.svolts_delta = -self.svolts_delta if abs(self.svolts) > 5 else self.svolts_delta
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):

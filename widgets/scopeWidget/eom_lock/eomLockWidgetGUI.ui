@@ -923,10 +923,10 @@
            <bool>false</bool>
           </property>
           <property name="currentText">
-           <string notr="true">Trg:Rising</string>
+           <string notr="true">Trg:Falling</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <item>
            <property name="text">
@@ -938,9 +938,8 @@
             <string>Trg:Falling</string>
            </property>
           </item>
-	  
          </widget>
-        </item>	
+        </item>
         <item row="1" column="9">
          <widget class="QComboBox" name="comboBox_channel2Coupling">
           <property name="currentText">
