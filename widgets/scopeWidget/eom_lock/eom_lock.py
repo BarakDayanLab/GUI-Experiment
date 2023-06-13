@@ -169,15 +169,18 @@ class EOMLockGUI(Scope_GUI):
         self.rp.updateParameters()
 
     # Find the drop/raise points
-    def check_signal(self, signal):
+    def find_fall_or_rise(self, signal):
         signal = np.array(signal)
+
+        min = signal.min()
+        max = signal.max()
+        delta = (max-min)*0.85/2.0
 
         # Iterate over all points and calc their delta
         p = np.diff(signal)
 
-        i = np.argmax(p>10e-5)
-
-        pass
+        i = np.argmax(abs(p)>delta)
+        return i
 
     def update_scope(self, data, parameters):
 
@@ -212,7 +215,7 @@ class EOMLockGUI(Scope_GUI):
         self.changedOutputs = False
 
         # Check signal
-        drop_rise_points = self.check_signal(data[0])
+        drop_rise_point = self.find_fall_or_rise(data[0])
 
         # ---------------- Average data  ----------------
         # Calculate average data:
