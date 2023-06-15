@@ -38,17 +38,20 @@ class EOMLockGUI(Scope_GUI):
         self.step = None  # Gets overriden by UI anyways...
         self.nudge = None  # Gets overriden by UI anyways...
         self.er_threshold = None  # Gets overriden by UI anyways...
-        self.offset = None  # Gets overriden by UI anyways... -0.001
+        self.offset = None  # Gets overriden by UI anyways...
+        self.fix_rate = None  # Gets overriden by UI anyways...
         self.flag = 1
         self.optimize = 'minimize'  # 'minimize' or 'maximize'
         self.iteration = 0
         self.prev_ns = time.time_ns()
         self.nudging = None  # Flag for one-time nudging of the step parameter
 
-        # For Debug purposes - scan DC amplitudes
-        self.sweep_mode = True
+        # Variables for Sweep Mode - scan DC amplitudes
+        self.mode = 'lock'  # 'lock', 'sweep'
+        self.sweeping = False  # Are we in the process of sweeping?
         self.svolts_delta = 0.05
-        self.svolts = -4.5
+        self.svolts_start = -4.5
+        self.svolts = self.svolts_start
         self.extintion_ratio_vec = []
         self.min_vec = []
         self.out_vec = []
@@ -97,7 +100,7 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL2, "DC")
 
     def configure_output_channels(self):
-        start_voltage = self.svolts if self.sweep_mode else self.x
+        start_voltage = self.x
 
         # Set channel 1
         self.rp.set_outputGain(self.OUTPUT_CHANNEL, 'X5', True)
@@ -119,6 +122,7 @@ class EOMLockGUI(Scope_GUI):
     def connect_custom_ui_controls(self):
         self.checkBox_ch1_lines.clicked.connect(self.chns_update)
         self.checkBox_ch2_lines.clicked.connect(self.chns_update)
+
         # Connect the trigger related combo boxes - Channel and Sweep
         self.comboBox_triggerSource.currentTextChanged.connect(self.updateTriggerSource)
         self.comboBox_triggerSweep.currentTextChanged.connect(self.updateTriggerSweep)
@@ -129,6 +133,9 @@ class EOMLockGUI(Scope_GUI):
 
     # Bind the GUI elements in the Custom frame - "outputsFrame" (top-right)
     def connectOutputsButtonsAndSpinboxes(self):
+        # Get the mode we're working in
+        self.outputsFrame.comboBox_mode.currentTextChanged.connect(self.updateMode)
+
         # Get Step and Weight parameters
         self.outputsFrame.doubleSpinBox_Step.valueChanged.connect(self.update_step_and_weight)
         self.outputsFrame.doubleSpinBox_Weight.valueChanged.connect(self.update_step_and_weight)
@@ -136,8 +143,7 @@ class EOMLockGUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_Offset.valueChanged.connect(self.update_step_and_weight)
 
         # Output buttons
-        self.outputsFrame.pushButton_StartLock.clicked.connect(self.toggle_lock)
-        self.outputsFrame.pushButton_Reset.clicked.connect(self.reset_lock)
+        self.outputsFrame.pushButton_StartStop.clicked.connect(self.toggle_start_stop_mode)
         self.outputsFrame.pushButton_nudgeUp.clicked.connect(self.nudge_up)
         self.outputsFrame.pushButton_nudgeDown.clicked.connect(self.nudge_down)
 
@@ -150,12 +156,24 @@ class EOMLockGUI(Scope_GUI):
         self.channel1_data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
         self.channel2_data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
 
+    def updateMode(self):
+        combo_text = self.outputsFrame.comboBox_mode.currentText().lower()
+
+        if "lock" in combo_text:
+            self.outputsFrame.pushButton_StartStop.setText('Start Lock')
+            self.mode = "lock"
+        else:
+            self.outputsFrame.pushButton_StartStop.setText('Start Sweep')
+            self.mode = "sweep"
+        pass
+
     # Updates the step/weight params that affect the lock mechanism
     def update_step_and_weight(self):
         self.step = float(self.outputsFrame.doubleSpinBox_Step.value())
         self.nudge = float(self.outputsFrame.doubleSpinBox_Weight.value())
         self.er_threshold = float(self.outputsFrame.doubleSpinBox_Threshold.value())
         self.offset = float(self.outputsFrame.doubleSpinBox_Offset.value())
+        self.fix_rate = int(self.outputsFrame.spinBox_FixRate.value())
 
     def updateOutputChannels(self):
         self.changedOutputs = True
@@ -171,19 +189,53 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
         self.rp.updateParameters()
 
-    # Find the drop/raise points
-    def find_fall_or_rise(self, signal):
+    def lows_and_highs(self, signal, offset=0):
         signal = np.array(signal)
 
         min = signal.min()
         max = signal.max()
-        delta = (max-min)*0.85/2.0
+        threshold = (max + min) / 2.0  # Cheaper in performance than running an average on values
+        #threshold = numpy.average(signal)
 
-        # Iterate over all points and calc their delta
-        p = np.diff(signal)
+        highs = signal[signal > threshold]
+        lows = signal[signal < threshold]
 
-        i = np.argmax(abs(p)>delta)
-        return i
+        highs = highs[offset:]
+        lows = lows[offset:]
+
+        high_average = numpy.average(highs)
+        low_average = numpy.average(lows)
+
+        return (low_average, high_average)
+
+    # Find the drop/raise points
+    def split_by_rising_falling_edges(self, signal, threshold=None):
+        signal = np.array(signal)
+
+        # Try to determine threshold level
+        if not threshold:
+            min = signal.min()
+            max = signal.max()
+            threshold = (max-min)*0.85/2.0
+
+        #signal = np.array([0.0, 0.1, 0.15, 0.21, 0.7, 0.81, 0.6, 0.15, 0.10, 0.05])
+        #threshold = 0.2
+
+        # Create a bool array with all the points where there was a value lower/higher than the threshold
+        mask1 = (signal[:-1] < threshold) & (signal[1:] > threshold)
+        mask2 = (signal[:-1] > threshold) & (signal[1:] < threshold)
+
+        bool_arr = (mask1 | mask2)
+        # Get all those places where we have True values (thus indicating the "switch" point)
+        indices = np.flatnonzero(bool_arr) + 1
+
+        if len(indices) != 2:
+            return 5
+
+        part1 = np.concatenate((signal[:indices[0]], signal[indices[1]:]))
+        part2 = signal[indices[0]+1:indices[1]-1]
+
+        return (part1, part2)
 
     def update_scope(self, data, parameters):
 
@@ -217,8 +269,10 @@ class EOMLockGUI(Scope_GUI):
 
         self.changedOutputs = False
 
+        (low_average, high_average) = self.lows_and_highs(data[0])
+
         # Check signal
-        drop_rise_point = self.find_fall_or_rise(data[0])
+        #drop_rise_point = self.split_by_rising_falling_edges(data[1])
 
         # ---------------- Average data  ----------------
         # Calculate average data:
@@ -229,9 +283,6 @@ class EOMLockGUI(Scope_GUI):
         if self.checkBox_ch2_lines.isChecked():
             self.channel2_avg_data = np.average(self.channel2_data, axis=0)
             Avg_data = Avg_data + [self.channel2_avg_data]
-            # Add output line to the graph
-            #buffer = np.full((1024,), self.x)
-            #Avg_data = Avg_data + [buffer]
 
         # Text box to be printed in lower right corner
         text_box_string = "EOM Lock"
@@ -270,8 +321,12 @@ class EOMLockGUI(Scope_GUI):
             tb = traceback.format_exc()
             print(tb)
 
-        # --------- Lock -----------
-        self.perform_lock()
+        # --------- Lock/Sweep -----------
+        min1 = self.channel1_avg_data.min()
+        max1 = self.channel1_avg_data.max()
+        min2 = low_average
+        max2 = high_average
+        self.perform_lock(min2, max2)
 
         # -------- Save Data  --------:
         if self.checkBox_saveData.isChecked():
@@ -279,18 +334,29 @@ class EOMLockGUI(Scope_GUI):
 
     # We toggle the state and change the button text
     # Note: we deliberately don't zero the DC out as we want to leave it the way it was
-    #       when we stopped the locking
-    def toggle_lock(self):
-        if self.lock_on:
-            self.outputsFrame.pushButton_StartLock.setText('Start Lock')
-            self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock OFF]")
-            self.rp.print('Lock stopped.', 'blue')
-        else:
-            self.outputsFrame.pushButton_StartLock.setText('Stop Lock')
-            self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock ON]")
-            self.rp.print('Lock started.', 'blue')
-
-        self.lock_on = not self.lock_on
+    #       when we stopped the locking/sweeping
+    def toggle_start_stop_mode(self):
+        if self.mode == 'lock':
+            if self.lock_on:
+                self.outputsFrame.pushButton_StartStop.setText('Start Lock')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock OFF]")
+                self.rp.print('Lock stopped.', 'blue')
+            else:
+                self.outputsFrame.pushButton_StartStop.setText('Stop Lock')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock ON]")
+                self.rp.print('Lock started.', 'blue')
+            self.lock_on = not self.lock_on
+        elif self.mode == 'sweep':
+            if self.sweeping:
+                self.outputsFrame.pushButton_StartStop.setText('Cont. Sweep')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Sweep stopped]")
+                self.rp.print('Sweep stopped.', 'blue')
+            else:
+                self.outputsFrame.pushButton_StartStop.setText('Stop Sweep')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Sweeping]")
+                self.rp.print('Sweep started.', 'blue')
+            self.sweeping = not self.sweeping
+            pass
 
     def reset_lock(self):
         pass
@@ -314,15 +380,15 @@ class EOMLockGUI(Scope_GUI):
         self.prev_ns = ns
         return round(delta)
 
-    def perform_lock(self):
+    def perform_lock(self, min, max):
 
         self.iteration = self.iteration + 1
-        if self.iteration % 5 > 0:
+        if self.iteration % self.fix_rate > 0:
             return
 
-        # Find min/max
-        min = self.channel1_avg_data.min()-self.offset
-        max = self.channel1_avg_data.max()-self.offset
+        # Offset min/max and fence it
+        min = min-self.offset
+        max = max-self.offset
         if min < 0:
             min = 0.001  # Avoid having extinction rate as INF
         if max < 0:
@@ -343,7 +409,7 @@ class EOMLockGUI(Scope_GUI):
         sample_rate_khz = 1/delta_millis*1000
 
         # Output the extinction ratio to the GUI
-        if not self.sweep_mode:
+        if self.mode == 'lock':
             txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.2f" % (extinction_ratio, self.x, yy1, sample_rate_khz)
         else:
             txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.2f" % (extinction_ratio, self.x, yy1, self.svolts)
@@ -351,40 +417,41 @@ class EOMLockGUI(Scope_GUI):
         self.outputsFrame.label_ExtinctionRatio.setStyleSheet(style)
 
         # If we're locked - re-calc output and send it out
-        if self.lock_on:
-            # Should we change the sign of the step?
-            if self.optimize == 'minimize' and yy1 > self.yy0:
-                self.flag = -self.flag
-            elif self.optimize == 'maximize' and yy1 < self.yy0:
-                self.flag = -self.flag
+        # Handle Sweep mode
+        if self.mode == 'sweep':
+            if self.sweeping:
+                self.sweep(extinction_ratio, min)
+        elif self.mode == 'lock':
+            if self.lock_on:
+                # Should we change the sign of the step?
+                if self.optimize == 'minimize' and yy1 > self.yy0:
+                    self.flag = -self.flag
+                elif self.optimize == 'maximize' and yy1 < self.yy0:
+                    self.flag = -self.flag
 
-            # Re-calc output
-            if self.nudging == 'up':
-                self.x = self.x + self.nudge
-            elif self.nudging == 'down':
-                self.x = self.x - self.nudge
-            else:
-                self.x = self.x + self.step * self.flag
+                # Re-calc output
+                if self.nudging == 'up':
+                    self.x = self.x + self.nudge
+                elif self.nudging == 'down':
+                    self.x = self.x - self.nudge
+                else:
+                    self.x = self.x + self.step * self.flag
 
-            self.nudging = False
+                self.nudging = False
 
-            # Defend output from outliers
-            if self.x >= 5.0:
-                self.x = 4.5
-            elif self.x <= 0:
-                self.x = 0.001
+                # Defend output from outliers
+                if self.x >= 5.0:
+                    self.x = 4.5
+                elif self.x <= 0:
+                    self.x = 0.001
 
-            # Handle Sweep mode
-            if self.sweep_mode:
-                self.sweep(extinction_ratio)
-            else:
-                # Set the RP output amplitude
-                self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
-                self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
+            # Set the RP output amplitude
+            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
+            self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
 
             self.yy0 = yy1
 
-    def sweep(self, extinction_ratio):
+    def sweep(self, extinction_ratio, min_val):
         # Increment volts
         self.svolts = self.svolts + self.svolts_delta
 
@@ -393,7 +460,7 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputDCAmplitude(self.DBG_CHANNEL, self.svolts)
 
         self.extintion_ratio_vec.append(extinction_ratio)
-        self.min_vec.append(min)
+        self.min_vec.append(min_val)
         self.out_vec.append(self.svolts)
 
         # Change the sign of the delta

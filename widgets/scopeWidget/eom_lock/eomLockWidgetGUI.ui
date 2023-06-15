@@ -568,7 +568,7 @@
            <string>Inverse</string>
           </property>
           <property name="checked">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -714,7 +714,7 @@
            <double>0.001000000000000</double>
           </property>
           <property name="value">
-           <double>0.000000000000000</double>
+           <double>-0.012000000000000</double>
           </property>
          </widget>
         </item>
@@ -855,7 +855,7 @@
            <double>0.010000000000000</double>
           </property>
           <property name="value">
-           <double>0.050000000000000</double>
+           <double>0.150000000000000</double>
           </property>
          </widget>
         </item>
@@ -895,10 +895,10 @@
            <bool>false</bool>
           </property>
           <property name="currentText">
-           <string notr="true">Trg:Auto</string>
+           <string notr="true">Trg:Normal</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <item>
            <property name="text">
