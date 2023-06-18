@@ -441,9 +441,9 @@ class EOMLockGUI(Scope_GUI):
 
                 # Defend output from outliers
                 if self.x >= 5.0:
-                    self.x = 4.5
-                elif self.x <= 0:
-                    self.x = 0.001
+                    self.x = 4.99
+                elif self.x <= -5:
+                    self.x = -4.99
 
             # Set the RP output amplitude
             self.rp.set_outputDCAmplitude(self.OUTPUT_CHANNEL, self.x)
