@@ -446,8 +446,8 @@ class EOMLockGUI(Scope_GUI):
                     self.x = 0.001
 
             # Set the RP output amplitude
-            self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, self.x)
-            self.rp.set_outputAmplitude(self.DBG_CHANNEL, self.x)
+            self.rp.set_outputDCAmplitude(self.OUTPUT_CHANNEL, self.x)
+            self.rp.set_outputDCAmplitude(self.DBG_CHANNEL, self.x)
 
             self.yy0 = yy1
 
