@@ -94,10 +94,16 @@ class EOMLockGUI(Scope_GUI):
 
 
     def configure_input_channels(self):
-        self.rp.set_inputState(self.INPUT_CHANNEL1, True)
-        self.rp.set_inputState(self.INPUT_CHANNEL2, True)
+        # Set channel 1
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL1, "DC")
+        self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:20")
+        #self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:1")
+        self.rp.set_inputState(self.INPUT_CHANNEL1, True)
+
+        # Set channel 2
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL2, "DC")
+        #self.rp.set_inputGain(self.INPUT_CHANNEL2, "1:20")
+        self.rp.set_inputState(self.INPUT_CHANNEL2, True)
 
     def configure_output_channels(self):
         start_voltage = self.x
@@ -110,7 +116,7 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputOffset(self.OUTPUT_CHANNEL, 0)
         self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
 
-        # Set channel 2 - debug
+        # Set channel 2
         self.rp.set_outputGain(self.DBG_CHANNEL, 'X5', True)
         self.rp.set_outputImpedance(self.DBG_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
         self.rp.set_outputFunction(self.DBG_CHANNEL, 'DC')  # 0=SINE 1=SQUARE 5=DC 8=DC_NEG

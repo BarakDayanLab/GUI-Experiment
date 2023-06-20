@@ -244,6 +244,12 @@ class Redpitaya:
         if verbose: self.print('Setting coupling of input channel %d to %s' % (channel, couplingMap[coupling]), color='green')
         self.new_parameters['OSC_CH%d_IN_AC_DC' % channel] = {'value': str(coupling)}
 
+    def set_inputGain(self, input=1, gain=0, verbose=False):
+        gainMap = ['1:1', '1:20']
+        if type(gain) is str and gain in gainMap: gain = gainMap.index(gain)
+        if verbose: print('Setting input channel %d to %s' % (input, gain))
+        self.new_parameters['OSC_CH%d_IN_GAIN' % input] = {'value': int(gain)}
+
     def set_outputImpedance(self, output=1, impedance=1, verbose=False):
         if verbose: self.print('Setting output channel %d impedance to %s' % (output, impedance))
         impedancesMap = ['HI_Z', '50_OHM']
