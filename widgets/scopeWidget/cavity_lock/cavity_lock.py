@@ -73,7 +73,8 @@ class Cavity_lock_GUI(Scope_GUI):
         # Get the UI file for Cavity lock - the generic frame
         ui = os.path.join(os.path.dirname(__file__), "cavityLockWidgetGUI.ui") if ui is None else ui
 
-        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.RED_PITAYA_HOST)
+        self.red_pitaya_host = CONFIG["red-pitaya-host"]
+        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host)
         # up to here, nothing to change.
 
         # Add outputs control UI
@@ -376,7 +377,13 @@ class Cavity_lock_GUI(Scope_GUI):
 
 if __name__ == "__main__":
     app = QApplication([])
+    login = os.getlogin()
     simulation = False if os.getlogin() == 'orelb' else True
+
+    CONFIG = {
+        "login": login,
+        "red-pitaya-host": "rp-ffffb4.local"
+    }
     window = Cavity_lock_GUI(simulation=simulation, debugging = True)
     window.show()
     app.exec_()
