@@ -29,6 +29,7 @@ class EOMLockGUI(Scope_GUI):
     DBG_CHANNEL = 2
     INPUT_CHANNEL1 = 1
     INPUT_CHANNEL2 = 2
+    OUTPUT_GAIN = 'X5'  # 'X1' or 'X5'
 
     def __init__(self, parent=None, ui=None, debugging=False, simulation=True):
         self.lock_on = False
@@ -96,8 +97,8 @@ class EOMLockGUI(Scope_GUI):
     def configure_input_channels(self):
         # Set channel 1
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL1, "DC")
-        self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:20")
-        #self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:1")
+        # self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:20")
+        self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:1")
         self.rp.set_inputState(self.INPUT_CHANNEL1, True)
 
         # Set channel 2
@@ -109,7 +110,8 @@ class EOMLockGUI(Scope_GUI):
         start_voltage = self.x
 
         # Set channel 1
-        self.rp.set_outputGain(self.OUTPUT_CHANNEL, 'X5', True)
+
+        self.rp.set_outputGain(self.OUTPUT_CHANNEL, self.OUTPUT_GAIN, True)
         self.rp.set_outputImpedance(self.OUTPUT_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
         self.rp.set_outputFunction(self.OUTPUT_CHANNEL, 'DC')  # 0=SINE 1=SQUARE 5=DC
         self.rp.set_outputAmplitude(self.OUTPUT_CHANNEL, start_voltage)
@@ -117,7 +119,7 @@ class EOMLockGUI(Scope_GUI):
         self.rp.set_outputState(self.OUTPUT_CHANNEL, True)
 
         # Set channel 2
-        self.rp.set_outputGain(self.DBG_CHANNEL, 'X5', True)
+        self.rp.set_outputGain(self.DBG_CHANNEL, self.OUTPUT_GAIN, True)
         self.rp.set_outputImpedance(self.DBG_CHANNEL, '50_OHM', verbose=True)  # 50_OHM, HI_Z
         self.rp.set_outputFunction(self.DBG_CHANNEL, 'DC')  # 0=SINE 1=SQUARE 5=DC 8=DC_NEG
         self.rp.set_outputAmplitude(self.DBG_CHANNEL, start_voltage)
@@ -278,6 +280,7 @@ class EOMLockGUI(Scope_GUI):
         (low_average, high_average) = self.lows_and_highs(data[0])
 
         # Check signal
+
         #drop_rise_point = self.split_by_rising_falling_edges(data[1])
 
         # ---------------- Average data  ----------------
@@ -415,10 +418,11 @@ class EOMLockGUI(Scope_GUI):
         sample_rate_khz = 1/delta_millis*1000
 
         # Output the extinction ratio to the GUI
+        display_volts = self.x * (2.0 if self.OUTPUT_GAIN == 'X5' else 1.0)  # RD can output [-1:+1] or [-5:+5]
         if self.mode == 'lock':
-            txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.2f" % (extinction_ratio, self.x, yy1, sample_rate_khz)
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.2f" % (extinction_ratio, display_volts, yy1, sample_rate_khz)
         else:
-            txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.2f" % (extinction_ratio, self.x, yy1, self.svolts)
+            txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.2f" % (extinction_ratio, display_volts, yy1, self.svolts)
         self.outputsFrame.label_ExtinctionRatio.setText(txt)
         self.outputsFrame.label_ExtinctionRatio.setStyleSheet(style)
 

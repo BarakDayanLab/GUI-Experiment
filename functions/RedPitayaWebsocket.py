@@ -3,7 +3,7 @@
 import traceback
 
 import requests
-import websocket
+from websocket import WebSocketApp
 import gzip
 import json
 
@@ -67,10 +67,10 @@ class Redpitaya:
         try:
             wsURL = "ws://%s/wss" % str(self.host)
             self.print('Connecting to %s ' % wsURL)
-            self.ws = websocket.WebSocketApp(wsURL,
-                                             on_message=self.on_message,
-                                             on_close=self.on_close,
-                                             on_error=self.on_error)  # on_open=on_open,)
+            self.ws = WebSocketApp(wsURL,
+                                   on_message=self.on_message,
+                                   on_close=self.on_close,
+                                   on_error=self.on_error)  # on_open=on_open,)
             self.connected = True
         except Exception as e:
             self.print('Connect({:s}) failed: {:s}'.format(host, str(e)), color='red')
