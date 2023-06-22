@@ -355,7 +355,7 @@
          </widget>
         </item>
         <item row="2" column="7">
-         <widget class="QLabel" name="label_5">
+         <widget class="QLabel" name="label_timeDiv">
           <property name="font">
            <font>
             <pointsize>10</pointsize>
