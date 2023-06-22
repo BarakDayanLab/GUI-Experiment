@@ -12,6 +12,7 @@ from PID import PID
 from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
 import time
+import traceback
 
 _CONNECTION_ATTMPTS = 2
 _HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
@@ -31,8 +32,6 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 class Cavity_lock_GUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
-    #RED_PITAYA_HOST = "rp-f08c36.local"  # 125
-    RED_PITAYA_HOST = "rp-ffff3e.local"  # 250
 
     def __init__(self, Parent=None, ui=None, debugging=False, simulation=True):
         if Parent is not None:
@@ -43,6 +42,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.lockOn = False
         self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
+        self.last_save_time = time.time()
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
@@ -88,6 +88,36 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # save error signal
         self.save_error_signal()
+
+    def ensure_dir_exists(self, folder_name):
+        if not os.path.exists(folder_name):
+            try:
+                os.makedirs(folder_name)
+            except Exception as e:
+                print(e)
+
+    def save_cavity_snapshot(self, data):
+        time_passed = time.time() - self.last_save_time
+        if time_passed < 60*5:  # Every 5 minutes
+            return
+        self.last_save_time = time.time()
+        time_str = time.strftime("%Y%m%d-%H%M%S")
+        date_str = time.strftime("%Y%m%d")
+
+        root_dirname = f'{self.MOUNT_DRIVE}Lab_2021-2022\\Experiment_results\\Sprint\\{date_str}\\Cavity_Spectrum'
+        self.ensure_dir_exists(root_dirname)
+
+        file_name_1 = root_dirname + f'\\{time_str}_spectrum.npy'
+        file_name_2 = root_dirname + f'\\{time_str}_figure.png'
+
+        try:
+            if len(data) > 0:
+                np.save(file_name_1, data)
+            self.widgetPlot.savePlot(file_name_2)
+        except Exception as ex:
+            tb = traceback.format_exc()
+            print(tb)
+            pass
 
     def save_error_signal(self):
         self.all_error_signals = []
@@ -342,6 +372,9 @@ class Cavity_lock_GUI(Scope_GUI):
                                    aux_plotting_func = self.widgetPlot.plot_Scatter, scatter_y_data = np.concatenate([Avg_data[0][Rb_peaks], Avg_data[1][Cavity_peak]]),
                                    scatter_x_data = np.concatenate([x_axis[Rb_peaks], x_axis[Cavity_peak]]),mark_peak = self.selectedPeaksXY, text_box = text_box_string)
 
+        # --------- Save Cavity Spectrum & Figure ----------
+        self.save_cavity_snapshot(Avg_data[1])
+
         # --------- Lock -----------
         if self.lockOn and self.selectedPeaksXY and len(self.selectedPeaksXY) == 2: # if, and only if, we have selected two peaks to lock on
            self.lockPeakToPeak()
@@ -382,9 +415,10 @@ if __name__ == "__main__":
 
     CONFIG = {
         "login": login,
-        "red-pitaya-host": "rp-ffffb4.local"
+        #"red-pitaya-host": "rp-ffffb4.local"
+        "red-pitaya-host": "rp-f08c36.local"  # TEMP TEMP TEMP
     }
-    window = Cavity_lock_GUI(simulation=simulation, debugging = True)
+    window = Cavity_lock_GUI(simulation=simulation, debugging=True)
     window.show()
     app.exec_()
     sys.exit(app.exec_())

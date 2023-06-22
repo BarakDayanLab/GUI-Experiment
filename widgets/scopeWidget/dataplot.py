@@ -296,4 +296,7 @@ class PlotWindow(QDialog):
         # refresh canvas
         self.canvas.draw()
 
+    def savePlot(self, filename):
+        plt.savefig(filename)
+
 
