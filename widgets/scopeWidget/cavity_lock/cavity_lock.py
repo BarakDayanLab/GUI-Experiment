@@ -415,8 +415,7 @@ if __name__ == "__main__":
 
     CONFIG = {
         "login": login,
-        #"red-pitaya-host": "rp-ffffb4.local"
-        "red-pitaya-host": "rp-f08c36.local"  # TEMP TEMP TEMP
+        "red-pitaya-host": "rp-ffffb4.local"
     }
     window = Cavity_lock_GUI(simulation=simulation, debugging=True)
     window.show()
