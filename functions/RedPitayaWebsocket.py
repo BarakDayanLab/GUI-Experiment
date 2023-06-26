@@ -14,10 +14,11 @@ import time
 class Redpitaya:
     # TODO: use timeout, get rid of port
 
-    def __init__(self, host, got_data_callback=None, timeout=None, trigger_source='EXT', dialogue_print_callback=None, debugging=False):
+    def __init__(self, host, got_data_callback=None, timeout=None, trigger_source='EXT', dialogue_print_callback=None, config=None, debugging=False):
         """Initialize object and open IP connection.
         Host IP should be a string in parentheses, like '192.168.1.100'.
         """
+        self.config = config
         self.time = time.time()
         # self.print("Initializing Red Pitaya class instance (%s)..." %host)
         self.host = host
@@ -33,11 +34,6 @@ class Redpitaya:
         self.print = dialogue_print_callback
         if dialogue_print_callback is None:
             self.print = self.print_data
-
-        # Set the trigger as default (later, UI may override this)
-        self.set_triggerSource(trigger_source)  # By default, EXT
-        self.set_triggerLevel(100)
-        self.set_triggerSweep('AUTO')
 
         self.set_dataSize(1024)
         # By default, data coming from RP will be in Volts
@@ -116,12 +112,21 @@ class Redpitaya:
             # After updating scope, with the existing parameters, these are not considered new anymore (this is for efficiency)
             self.received_parameters['new_parameters'] = False
         elif 'parameters' in data:
-            if self.firstRun and 'OSC_TIME_SCALE' in data['parameters']:
-                self.firstRun = False
-                self.received_parameters = data['parameters']
-                self.received_parameters['new_parameters'] = True
-                if self.debugging:
-                    print(data['parameters'])
+            if self.config["locker"] == 'eom':
+                if self.firstRun and 'OSC_TIME_SCALE' in data['parameters']:
+                    self.firstRun = False
+                    self.received_parameters = data['parameters']
+                    self.received_parameters['new_parameters'] = True
+                    if self.debugging:
+                        print(data['parameters'])
+
+            if self.config["locker"] == 'cavity':
+                if 'OSC_TIME_SCALE' in data['parameters']:
+                    self.received_parameters = data['parameters']
+                    self.received_parameters['new_parameters'] = True
+                    if self.debugging:
+                        print(data['parameters'])
+
         else:
             self.print('Unexpected response from RP: \n%s' %data, color='red')
 
@@ -171,13 +176,13 @@ class Redpitaya:
         else:
             self.print("Please choose source from " + str(options), color='red')
 
-    def set_triggerLevel(self, lvl=200, verbose=False):
-        """Set trigger level in mV."""
-        if np.abs(lvl) < 2000:
-            if verbose: self.print('Setting trigger level to %d mV' % lvl, color='green')
-            self.new_parameters['OSC_TRIG_LEVEL'] = {'value': lvl}
+    def set_triggerLevel(self, lvl=0.2, verbose=False):
+        """Set trigger level in Volts"""
+        if np.abs(lvl) < 2.0:
+            if verbose: self.print('Setting trigger level to %d mV' % (lvl*1000), color='green')
+            self.new_parameters['OSC_TRIG_LEVEL'] = {'value': str(lvl)}
         else:
-            self.print('Trigger level must be < 2000', color='red')  # Not sure about trigger limit. it's thus in original code
+            self.print('Trigger level must be < 2V', color='red')  # Not sure about trigger limit. it's thus in original code
 
     def set_triggerDelay(self, t, verbose=False):
         """Set trigger delay in milli-sec."""
@@ -194,9 +199,10 @@ class Redpitaya:
         if verbose: self.print('Setting channel %s to inverse %s' % (ch, value), color='green')
         self.new_parameters['CH%d_SHOW_INVERTED' % int(ch)] = {'value': bool(value)}
 
-    def set_timeScale(self, t):
-        """Set time scale in mili-sec."""
+    def set_timeScale(self, t, verbose=False):
+        """Set time scale in milli-sec."""
         # Note: this is timescale per 1 division. There are 10 divisions (!)
+        #if verbose: self.print('Setting Div/Time to %t ms' % t, color='green')
         self.new_parameters['OSC_TIME_SCALE'] = {'value': str(t)}  # note strange: this (float) is converted to string
 
     def set_yScale(self, v, ch=1):

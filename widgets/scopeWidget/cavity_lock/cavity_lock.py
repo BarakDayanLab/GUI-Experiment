@@ -32,6 +32,8 @@ from widgets.scopeWidget.scope import Scope_GUI
 
 class Cavity_lock_GUI(Scope_GUI):
     MOUNT_DRIVE = "U:\\"
+    INPUT_CHANNEL1 = 1
+    INPUT_CHANNEL2 = 2
 
     def __init__(self, Parent=None, ui=None, debugging=False, simulation=True):
         if Parent is not None:
@@ -43,6 +45,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
         self.last_save_time = time.time()
+        self.prev_time_scale = 1.0
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
@@ -74,7 +77,7 @@ class Cavity_lock_GUI(Scope_GUI):
         ui = os.path.join(os.path.dirname(__file__), "cavityLockWidgetGUI.ui") if ui is None else ui
 
         self.red_pitaya_host = CONFIG["red-pitaya-host"]
-        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host)
+        super().__init__(Parent=Parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host, config=CONFIG)
         # up to here, nothing to change.
 
         # Add outputs control UI
@@ -88,6 +91,18 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # save error signal
         self.save_error_signal()
+
+    def configure_input_channels(self):
+        # Set channel 1
+        self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL1, "AC")
+        self.rp.set_inputGain(self.INPUT_CHANNEL1, "1:1")
+        self.rp.set_inputState(self.INPUT_CHANNEL1, True)
+
+        # Set channel 2
+        self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL2, "AC")
+        self.rp.set_inputGain(self.INPUT_CHANNEL2, "1:1")
+        self.rp.set_inputState(self.INPUT_CHANNEL2, True)
+
 
     def ensure_dir_exists(self, folder_name):
         if not os.path.exists(folder_name):
@@ -162,6 +177,18 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_outVHalogen.valueChanged.connect(self.updateHMP4040Voltage)
         self.outputsFrame.checkBox_halogenOuputState.stateChanged.connect(self.updateHMP4040State)
 
+    def updateTriggerSweep(self):
+        self.rp.set_triggerSweep('NORMAL', True)
+        pass
+
+    def updateTriggerSource(self):
+        trigger_source = self.comboBox_triggerSource.currentText()  # text
+        self.rp.set_triggerSource(trigger_source, True)
+        pass
+
+    def updateTriggerSlope(self):
+        self.rp.set_triggerSlope('RISING', True)
+        pass
 
     def updateHMP4040Current(self):
         if not self.hmp4040_available:
@@ -268,6 +295,7 @@ class Cavity_lock_GUI(Scope_GUI):
             self.chns_update()
             self.updateOutputChannels()
             self.rp.firstRun = False
+            self.configure_input_channels()
 
         # ---------------- Handle Redraws and data reading ----------------
         # This is true only when some parameters were changed on RP, prompting a total redraw of the plot (in other cases, updating the data suffices)
@@ -313,12 +341,20 @@ class Cavity_lock_GUI(Scope_GUI):
         # ------- Scales -------
         # At this point we assume we have a correct calibration polynomial in @self.index_to_freq
         # Set Values for x-axis frequency:
-        time_scale = float(self.scope_parameters['OSC_TIME_SCALE']['value'])
+        if 'OSC_TIME_SCALE' in self.scope_parameters:
+            time_scale = float(self.scope_parameters['OSC_TIME_SCALE']['value'])
+            self.prev_time_scale = time_scale
+        else:
+            time_scale = self.prev_time_scale
+
+        if 'OSC_DATA_SIZE' not in self.scope_parameters:
+            return
+
         indx_to_time = float(10 * time_scale / self.scope_parameters['OSC_DATA_SIZE']['value'])
         num_of_samples = int(self.scope_parameters['OSC_DATA_SIZE']['value'])
         # time-scale
         if len(Rb_peaks) != numberOfDetectedPeaks:
-            print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
+            # print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
             x_axis = np.linspace(0, time_scale * 10, num=num_of_samples)
             x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
             x_axis_units = '[ms]'
@@ -415,7 +451,8 @@ if __name__ == "__main__":
 
     CONFIG = {
         "login": login,
-        "red-pitaya-host": "rp-ffffb4.local"
+        "red-pitaya-host": "rp-ffffb4.local",
+        "locker": "cavity"
     }
     window = Cavity_lock_GUI(simulation=simulation, debugging=True)
     window.show()

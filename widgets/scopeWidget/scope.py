@@ -30,7 +30,7 @@ from widgets.quantumWidget import QuantumWidget
 class Scope_GUI(QuantumWidget):
     SCALE_OPTIONS = ['ms', 'us', 'ns']
 
-    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, debugging=False):
+    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, config=None, debugging=False):
         if Parent is not None:
             self.Parent = Parent
         ui = os.path.join(os.path.dirname(__file__), "scopeWidgetGUI.ui") if ui is None else ui
@@ -43,6 +43,7 @@ class Scope_GUI(QuantumWidget):
             self.threadpool = QThreadPool()
             print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
 
+        self.config = config
         self.connection_attempt = 0  # This holds connection attmeps. As long as this is < than _CONNECTION_ATTMPTS, will try to reconnect
         self.scope_parameters = {'new_parameters': False, 'OSC_TIME_SCALE': {'value':'1'}, 'OSC_CH1_SCALE': {'value':'1'},'OSC_CH1_SCALE': {'value':'1'}, 'OSC_DATA_SIZE':{'value':1024}}
         self.CHsUpdated = False
@@ -50,7 +51,7 @@ class Scope_GUI(QuantumWidget):
         self.isSavingNDataFiles = False
         self.signalLength = self.scope_parameters['OSC_DATA_SIZE']['value']  # 1024 by default
         self.indx_to_freq = [0]
-        self.time_scale_units = 1  # 0=ms, 1=us, 2=ns
+        self.time_scale_units = None  # This will be overriden by UI settings. The enum values are:  0=ms, 1=us, 2=ns
 
         # -- connect --
         self.connectButtonsAndSpinboxes()
@@ -77,12 +78,11 @@ class Scope_GUI(QuantumWidget):
         if event.type() != 2:
             return  # Not mouse click
 
+        # Cycle to the next unit (ms,us,ns) and udpate the label
         self.time_scale_units = (self.time_scale_units + 1) % len(self.SCALE_OPTIONS)
-
-        # Set the label
-        self.label_timeDiv.setText("Time/Div [%s]" % self.SCALE_OPTIONS[self.time_scale_units])
-
-        self.updateTimeScale(True)
+        self.label_timeDiv.setText("Time/Div [%s]:" % self.SCALE_OPTIONS[self.time_scale_units])
+        # Update the Red Pitaya
+        self.updateTimeScale()
 
     def setInverseChns(self):
         self.rp.set_inverseChannel(ch=1, value = self.checkBox_CH1Inverse.isChecked())
@@ -120,16 +120,20 @@ class Scope_GUI(QuantumWidget):
         trigger_time = float(self.doubleSpinBox_triggerDelay.value())  # ms
         trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V
         self.rp.set_triggerDelay(trigger_time, True)
-        self.rp.set_triggerLevel(trigger_level*1000, True)
+        self.rp.set_triggerLevel(trigger_level, True)
         # self.print_to_dialogue("Trigger delay changed to %f ms; Source: %s; Level: %2.f [V]" % (t,s,l))
 
     # Update the RedPitaya with the timescale as appears in UI
-    def updateTimeScale(self, verbose=False):
+    def updateTimeScale(self):
+        # Get the time-scale unit mentioned in UI
+        units_str = self.label_timeDiv.text().replace('Time/Div [', '').replace(']:', '')
+        self.time_scale_units = self.SCALE_OPTIONS.index(units_str)
+
+        # Get the time-scale mention in UI
         t = float(self.doubleSpinBox_timeScale.text())
-        factor = pow(10,self.time_scale_units*3)
+        factor = pow(10, self.time_scale_units*3)
         t = t / factor  # us - like dividing by 10^3
-        self.rp.set_timeScale(t)
-        #if verbose: self.print_to_dialogue("Time scale changed to %f %s" % (t, self.SCALE_OPTION[self.time_scale_units]))
+        self.rp.set_timeScale(t, True)
 
     # Update the average sampling for the two channels
     # (update the locker subclass, so it can zero its data buffers)
@@ -218,11 +222,13 @@ class Scope_GUI(QuantumWidget):
             self.rp = RedPitayaWebsocket.Redpitaya(host="rp-ffffb4.local",
                                                    got_data_callback=self.update_scope,
                                                    dialogue_print_callback=self.print_to_dialogue,
+                                                   config=self.config,
                                                    debugging= self.debugging)
         else:
             self.rp = RedPitayaWebsocket.Redpitaya(host=self.host,
                                                    got_data_callback=self.update_scope,
                                                    dialogue_print_callback=self.print_to_dialogue,
+                                                   config=self.config,
                                                    debugging= self.debugging)
 
         if self.rp.connected:

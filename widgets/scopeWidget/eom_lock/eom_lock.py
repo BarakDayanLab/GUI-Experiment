@@ -76,7 +76,7 @@ class EOMLockGUI(Scope_GUI):
         ui = os.path.join(os.path.dirname(__file__), "eomLockWidgetGUI.ui") if ui is None else ui
 
         self.red_pitaya_host = CONFIG["red-pitaya-host"]
-        super().__init__(Parent=parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host)
+        super().__init__(Parent=parent, ui=ui, debugging=debugging, simulation=simulation, RedPitayaHost=self.red_pitaya_host, config=CONFIG)
 
 
         # Add outputs control UI
@@ -163,6 +163,19 @@ class EOMLockGUI(Scope_GUI):
     def averaging_parameters_updated(self):
         self.channel1_data = np.zeros((self.Avg_num[0], self.signalLength))  # Place holder
         self.channel2_data = np.zeros((self.Avg_num[1], self.signalLength))  # Place holder
+
+    # TODO: need to enable these and in scope.py, make them raise NotImplementedException
+    # def updateTriggerSource(self):
+    #     trigger_source = self.comboBox_triggerSource.currentText()  # text
+    #     self.rp.set_triggerSource(trigger_source, True)
+    #
+    # def updateTriggerSweep(self):
+    #     trigger_sweep = self.comboBox_triggerSweep.currentText()  # get sweep policy (SINGLE, AUTO, NORMAL
+    #     self.rp.set_triggerSweep(trigger_sweep.replace('Trg:', '').upper(), True)
+    #
+    # def updateTriggerSlope(self):
+    #     trigger_slope = self.comboBox_triggerSlope.currentText()  # get trigger slope (RISING, FALLING)
+    #     self.rp.set_triggerSlope(trigger_slope.replace('Trg:', '').upper(), True)
 
     def updateMode(self):
         combo_text = self.outputsFrame.comboBox_mode.currentText().lower()
@@ -510,7 +523,8 @@ if __name__ == "__main__":
 
     CONFIG = {
         "login": login,
-        "red-pitaya-host": RED_PITAYA_HOST_125 if login == 'drorg' else RED_PITAYA_HOST_250
+        "red-pitaya-host": RED_PITAYA_HOST_125 if login == 'drorg' else RED_PITAYA_HOST_250,
+        "locker": "eom"
     }
     window = EOMLockGUI(simulation=simulation, debugging=True)
     window.show()
