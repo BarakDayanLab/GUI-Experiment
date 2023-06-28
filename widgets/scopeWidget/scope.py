@@ -30,7 +30,7 @@ from widgets.quantumWidget import QuantumWidget
 class Scope_GUI(QuantumWidget):
     SCALE_OPTIONS = ['ms', 'us', 'ns']
 
-    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, config=None, debugging=False):
+    def __init__(self, Parent=None, ui=None, simulation=True, RedPitayaHost=None, config=None, debugging=True):
         if Parent is not None:
             self.Parent = Parent
         ui = os.path.join(os.path.dirname(__file__), "scopeWidgetGUI.ui") if ui is None else ui
@@ -118,7 +118,7 @@ class Scope_GUI(QuantumWidget):
     # Update the Red Pitaya with trigger settings as appears in UI
     def updateTriggerDelay(self):
         trigger_time = float(self.doubleSpinBox_triggerDelay.value())  # ms
-        trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V
+        trigger_level = float(self.doubleSpinBox_triggerLevel.value())  # in V - for cavity_lock - between 0.5-2.5 V
         self.rp.set_triggerDelay(trigger_time, True)
         self.rp.set_triggerLevel(trigger_level, True)
         # self.print_to_dialogue("Trigger delay changed to %f ms; Source: %s; Level: %2.f [V]" % (t,s,l))

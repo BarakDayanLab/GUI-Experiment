@@ -29,17 +29,17 @@ class HMP4040Visa():
             time.sleep(2)
             printGreen('Connected to ' + str(self.inst.query('*IDN?')))
         except:
-            printError('Cold not connect to %s. Try another port.' % port)
+            printError('Could not connect to %s. Try another port.' % port)
             for s in self.rm.list_resources():
                 try:
                     print('%s identifies as: ' % str(s) ,self.rm.open_resource(str(s)).query('*IDN?'))
                 except:
-                    printError('Could not identify %s' %str(s))
+                    printError('Could not identify %s' % str(s))
 
     # returns power in Watts
     def setOutput(self, ch = 4):
         self.inst.write('INST OUT%s' % str(int(ch)))
-        printGreen('Channel set to %s'%str(int(ch)))
+        printGreen('Channel set to %s' % str(int(ch)))
         return(float(ch))
 
     def setVoltage(self, v = 0):

@@ -46,6 +46,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
         self.last_save_time = time.time()
         self.prev_time_scale = 1.0
+        self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
@@ -119,7 +120,7 @@ class Cavity_lock_GUI(Scope_GUI):
         time_str = time.strftime("%Y%m%d-%H%M%S")
         date_str = time.strftime("%Y%m%d")
 
-        root_dirname = f'{self.MOUNT_DRIVE}Lab_2021-2022\\Experiment_results\\Sprint\\{date_str}\\Cavity_Spectrum'
+        root_dirname = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
         self.ensure_dir_exists(root_dirname)
 
         file_name_1 = root_dirname + f'\\{time_str}_spectrum.npy'
@@ -187,7 +188,7 @@ class Cavity_lock_GUI(Scope_GUI):
         pass
 
     def updateTriggerSlope(self):
-        self.rp.set_triggerSlope('RISING', True)
+        self.rp.set_triggerSlope('FALLING', True)
         pass
 
     def updateHMP4040Current(self):
@@ -216,7 +217,9 @@ class Cavity_lock_GUI(Scope_GUI):
             self.velocityWavelength = v
 
     def updatePID(self):
-        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value()), float(self.outputsFrame.doubleSpinBox_I.value()), float(self.outputsFrame.doubleSpinBox_D.value())
+        P = float(self.outputsFrame.doubleSpinBox_P.value()/self.DIVIDER)
+        I = float(self.outputsFrame.doubleSpinBox_I.value()/self.DIVIDER)
+        D = float(self.outputsFrame.doubleSpinBox_D.value()/self.DIVIDER)
         if self.pid:
             self.pid.tunings = (P, I, D)
 
@@ -225,7 +228,9 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
-        P, I, D = float(self.outputsFrame.doubleSpinBox_P.value())/1000, float(self.outputsFrame.doubleSpinBox_I.value())/1000, float(self.outputsFrame.doubleSpinBox_D.value()/1000)
+        P = float(self.outputsFrame.doubleSpinBox_P.value()/self.DIVIDER)
+        I = float(self.outputsFrame.doubleSpinBox_I.value()/self.DIVIDER)
+        D = float(self.outputsFrame.doubleSpinBox_D.value()/self.DIVIDER)
         self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
 
@@ -424,9 +429,11 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # save error signal for thrshold in sprint experiments
-        with open('Z:\Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error\locking_err.txt') as f:
-            lines = f.writelines('%d', errorSignal)
-        # np.save(error_sig_root, errorSignal)
+        locking_error_path = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error\locking_err.npy')
+        # with open(locking_error_path,'a') as f:
+        #     lines = f.writelines('%d' %errorSignal)
+        #     f.close()
+        np.save(locking_error_path, errorSignal)
         self.all_error_signals += [errorSignal]
 
 
@@ -440,9 +447,10 @@ class Cavity_lock_GUI(Scope_GUI):
         #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
         if output > _LASER_CURRENT_MAX: output = _LASER_CURRENT_MAX
         if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
-        if output != self.outputsFrame.doubleSpinBox_outIHalogen.value(): # if output is different, only then send update command
+        if output != self.outputsFrame.doubleSpinBox_outIHalogen.value():  # if output is different, only then send update command
             self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
-
+        if errorSignal:
+            self.outputsFrame.label_PIDSettings.setText('PID controller (err: %.2f)' % errorSignal)
 
 if __name__ == "__main__":
     app = QApplication([])
