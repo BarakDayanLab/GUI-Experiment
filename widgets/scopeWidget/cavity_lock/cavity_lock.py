@@ -229,7 +229,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def toggleLock(self):
         self.lockOn = not self.lockOn
-        self.outputsFrame.checkBox_halogenOuputState.setCheckState(self.lockOn)  # Set the halogen checlbox on/off
+        self.outputsFrame.checkBox_halogenOuputState.setChecked(self.lockOn)  # Set the halogen checkbox on/off
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
         P = float(self.outputsFrame.doubleSpinBox_P.value()/self.DIVIDER)
