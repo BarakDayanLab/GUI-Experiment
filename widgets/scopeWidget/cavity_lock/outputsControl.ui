@@ -18,7 +18,7 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>334</width>
+     <width>301</width>
      <height>311</height>
     </rect>
    </property>
@@ -89,6 +89,12 @@
     </item>
     <item row="9" column="2">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch2OutAmp">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimum">
        <double>-5.000000000000000</double>
       </property>
@@ -114,6 +120,12 @@
     </item>
     <item row="8" column="2">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_ch1OutAmp">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimum">
        <double>-5.000000000000000</double>
       </property>
@@ -127,6 +139,12 @@
     </item>
     <item row="7" column="5">
      <widget class="QLabel" name="label_36">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -175,6 +193,12 @@
     </item>
     <item row="8" column="5">
      <widget class="QComboBox" name="comboBox_ch1OutFunction">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <item>
        <property name="text">
         <string>DC</string>
@@ -254,23 +278,6 @@
       </property>
       <property name="text">
        <string>Ch 2 </string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="0" colspan="4">
-     <widget class="QLabel" name="label_PIDSettings">
-      <property name="font">
-       <font>
-        <pointsize>10</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>PID controller</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>
@@ -416,6 +423,12 @@
     </item>
     <item row="9" column="5">
      <widget class="QComboBox" name="comboBox_ch2OutFunction">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <item>
        <property name="text">
         <string>DC</string>
@@ -496,6 +509,12 @@
     </item>
     <item row="7" column="2">
      <widget class="QLabel" name="label_22">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -583,6 +602,12 @@
     </item>
     <item row="10" column="2">
      <widget class="QLabel" name="label_27">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -630,6 +655,12 @@
     </item>
     <item row="10" column="5">
      <widget class="QDoubleSpinBox" name="doubleSpinBox_outIHalogen">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="decimals">
        <number>3</number>
       </property>
@@ -655,6 +686,23 @@
       </property>
       <property name="text">
        <string>LOCK</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="5">
+     <widget class="QLabel" name="label_PIDSettings">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>PID controller</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
       </property>
      </widget>
     </item>

@@ -229,7 +229,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def toggleLock(self):
         self.lockOn = not self.lockOn
-        self.outputsFrame.checkBox_ch1OuputState.setCheckState(self.lockOn)
+        self.outputsFrame.checkBox_halogenOuputState.setCheckState(self.lockOn)  # Set the halogen checlbox on/off
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         # Set PID limits and values
         P = float(self.outputsFrame.doubleSpinBox_P.value()/self.DIVIDER)
@@ -445,6 +445,7 @@ class Cavity_lock_GUI(Scope_GUI):
         output = self.pid(errorSignal)
         output = float(self.outputOffset + output)
         if self.debugging: print('Error Signal: ', errorSignal, 'Output: ', output)
+
         # ------- set output --------------
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
         # Lock using green laser
@@ -454,7 +455,8 @@ class Cavity_lock_GUI(Scope_GUI):
         if output != self.outputsFrame.doubleSpinBox_outIHalogen.value():  # if output is different, only then send update command
             self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
         if errorSignal:
-            self.outputsFrame.label_PIDSettings.setText('PID controller (err: %.2f)' % errorSignal)
+            self.outputsFrame.label_PIDSettings.setText('PID controller (err: %.3f)' % errorSignal)
+
 
 if __name__ == "__main__":
     app = QApplication([])
