@@ -24,13 +24,14 @@ class PlotWindow(QDialog):
     def __init__(self, parent=None):
         super(PlotWindow, self).__init__(parent)
 
-        plt.ion()
-        self.figure = plt.figure(1)
+        plt.ion()  # Set interactive mode "on"
+        #plt.ioff()
+        self.figure = plt.figure(1, figsize=[3.2, 2.4])
         self.axes = []
         self.axes.append(self.figure.add_subplot(111))
         self.arrows = [None] * 2  #len(kwargs['mark_peak'])  # Create placeholder for 2 arrows
         self.markedPeaks = None
-        self.scatter = None # Placeholder
+        self.scatter = None  # Placeholder
         self.annotations = []
         self.annotations = None
         self.textBox = None
@@ -84,6 +85,8 @@ class PlotWindow(QDialog):
             if 'text_box' in kwargs and kwargs['text_box'] is not None:
                 if self.textBox is None: self.addTextBox(textstr=kwargs['text_box'])
                 self.textBox.set_text(str(kwargs['text_box']))
+            #self.canvas.draw()
+            #self.canvas.flush_events()
             return
 
         print('Redrawing all')

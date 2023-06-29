@@ -93,6 +93,10 @@ class Cavity_lock_GUI(Scope_GUI):
         # save error signal
         self.save_error_signal()
 
+        # Set title and maximize window
+        self.setWindowTitle('Cavity Locker')
+        self.showMaximized()  # maximize()
+
     def configure_input_channels(self):
         # Set channel 1
         self.rp.set_inputAcDcCoupling(self.INPUT_CHANNEL1, "AC")

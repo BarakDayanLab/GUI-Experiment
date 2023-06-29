@@ -93,6 +93,9 @@ class EOMLockGUI(Scope_GUI):
         # Update the default lock settings based on the UI defaults
         self.update_step_and_weight()
 
+        # Set title and maximize window
+        self.setWindowTitle('EOM Locker')
+        self.showMaximized()  # maximize()
 
     def configure_input_channels(self):
         # Set channel 1

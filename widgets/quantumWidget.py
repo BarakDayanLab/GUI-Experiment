@@ -33,9 +33,9 @@ class QuantumWidget (QWidget):
         ui = os.path.join(os.path.dirname(__file__), "gui.ui") if ui is None else ui
         uic.loadUi(ui, self)
 
-        self.widgetPlot = dataplot.PlotWindow()
-        
+        # Add dataplot - which is a QDialog - into the vertical layout
         try:
+            self.widgetPlot = dataplot.PlotWindow()
             self.verticalLayout_mpl.addWidget(self.widgetPlot.widgetPlot)
         except AttributeError:
             pass
