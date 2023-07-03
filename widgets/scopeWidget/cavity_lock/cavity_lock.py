@@ -343,9 +343,6 @@ class Cavity_lock_GUI(Scope_GUI):
                                                         prominence=float(self.doubleSpinBox_prominence_ch2.value()),
                                                         width=float(self.spinBox_width_ch2.value()))
 
-        # converting time to MHz/detuning
-        numberOfDetectedPeaks = 2  # should detect exactly 3 peaks. otherwise, vortex probably moved
-
 
         # ------- Scales -------
         # At this point we assume we have a correct calibration polynomial in @self.index_to_freq
@@ -362,20 +359,14 @@ class Cavity_lock_GUI(Scope_GUI):
         indx_to_time = float(10 * time_scale / self.scope_parameters['OSC_DATA_SIZE']['value'])
         num_of_samples = int(self.scope_parameters['OSC_DATA_SIZE']['value'])
         # time-scale
-        if len(Rb_peaks) != numberOfDetectedPeaks:
-            # print('Found more or less than %d Rb peaks! change prominence/distance of ch1 or (time/Div)' % (numberOfDetectedPeaks))
-            x_axis = np.linspace(0, time_scale * 10, num=num_of_samples)
-            x_ticks = np.arange(x_axis[0], x_axis[-1], time_scale)
-            x_axis_units = '[ms]'
-        else:
-            # self.indx_to_freq = (156.947 / 2) / (
-            #          (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
-            self.indx_to_freq = (156.947 / 2+72.218/2) / (
-                     (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
-            x_axis =  np.linspace(0, num_of_samples*self.indx_to_freq,num=num_of_samples)
-            # x_ticks = np.arange(x_axis[0], x_axis[-1], self.indx_to_freq)
-            x_ticks = np.arange(x_axis[0], x_axis[-1], num_of_samples*self.indx_to_freq/10)
-            x_axis_units = '[MHz]'
+        # self.indx_to_freq = (156.947 / 2) / (
+        #          (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+        self.indx_to_freq = (156.947 / 2+72.218/2) / (
+                 (Rb_peaks[-1] - Rb_peaks[-2]))  # [MHz] the frequency distance between two data points
+        x_axis =  np.linspace(0, num_of_samples*self.indx_to_freq,num=num_of_samples)
+        # x_ticks = np.arange(x_axis[0], x_axis[-1], self.indx_to_freq)
+        x_ticks = np.arange(x_axis[0], x_axis[-1], num_of_samples*self.indx_to_freq/10)
+        x_axis_units = '[MHz]'
 
         # Secondary axis
         # indx_to_freq = self.indx_to_freq[0]
