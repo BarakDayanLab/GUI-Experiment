@@ -14,11 +14,11 @@ from functions.HMP4040Control import HMP4040Visa
 import time
 import traceback
 
-_CONNECTION_ATTMPTS = 2
-_HALOGEN_VOLTAGE_LIMIT = 12 # [VOLTS], 3.3 for red laser
-_LASER_CURRENT_MAX = 0.28 # [AMPS]
-_LASER_CURRENT_MIN = 0.17 # [AMPS]
-_LASER_TYPICAL_VOLTAGE = 3 #[volts]
+_CONNECTION_ATTEMPTS = 2
+_HALOGEN_VOLTAGE_LIMIT = 12  # [VOLTS], 3.3 for red laser
+_LASER_CURRENT_MAX = 0.28  # [AMPS]
+_LASER_CURRENT_MIN = 0.17  # [AMPS]
+_LASER_TYPICAL_VOLTAGE = 3  # [Volts]
 
 try:
     from functions.cavity_lock.cavity_lock import CavityLock
@@ -38,6 +38,8 @@ class Cavity_lock_GUI(Scope_GUI):
     def __init__(self, Parent=None, ui=None, debugging=False, simulation=True):
         if Parent is not None:
             self.Parent = Parent
+
+        self.laser_at_min_max = False  # Indicates whether laser is at its min/max linear spectrum
 
         self.listenForMouseClickCID = None
         self.pid = None
@@ -279,7 +281,7 @@ class Cavity_lock_GUI(Scope_GUI):
         if self.listenForMouseClickCID is None:  # start listening
             self.listenForMouseClickCID = self.widgetPlot.canvas.mpl_connect('button_press_event', mouseClickOnScope)
             self.selectedPeaksXY = None
-            self.print_to_dialogue('Select first peak on scope...', color = 'green')
+            self.print_to_dialogue('Select first peak on scope...', color='green')
         else: # stop listen
             self.widgetPlot.canvas.mpl_disconnect(self.listenForMouseClickCID)
             self.listenForMouseClickCID = None
@@ -416,6 +418,22 @@ class Cavity_lock_GUI(Scope_GUI):
         if self.checkBox_saveData.isChecked():
             self.saveCurrentDataClicked()
 
+    # If laser as at its linear edges (min/max) - indicate
+    def indicateLaserMinMax(self, warn=False):
+        if warn:
+            self.outputsFrame.doubleSpinBox_outIHalogen.setStyleSheet("QDoubleSpinBox"
+                                                            "{"
+                                                            #"border : 1px solid orange;"
+                                                            "background-color : orange;"
+                                                            "}")
+        else:
+            self.outputsFrame.doubleSpinBox_outIHalogen.setStyleSheet("QDoubleSpinBox"
+                                                            "{"
+                                                            #"border : 0px solid white;"
+                                                            "background-color : white;"
+                                                            "}")
+        pass
+
     def lockPeakToPeak(self):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
@@ -438,8 +456,21 @@ class Cavity_lock_GUI(Scope_GUI):
         # It's a problem with Red-Pitaya: to get 10V DC output, one has to set both Amp and Offset to 5V
         # Lock using green laser
         #if output > _HALOGEN_VOLTAGE_LIMIT: output = _HALOGEN_VOLTAGE_LIMIT
-        if output > _LASER_CURRENT_MAX: output = _LASER_CURRENT_MAX
-        if output < _LASER_CURRENT_MIN: output = _LASER_CURRENT_MIN
+
+        # If we are back within range, and previously we were on the edges, remove warn indication
+        if output > _LASER_CURRENT_MIN and output < _LASER_CURRENT_MAX and self.laser_at_min_max:
+            self.indicateLaserMinMax(False)
+            self.laser_at_min_max = False
+
+        if output > _LASER_CURRENT_MAX:
+            output = _LASER_CURRENT_MAX
+            self.laser_at_min_max = True
+            self.indicateLaserMinMax(True)
+        elif output < _LASER_CURRENT_MIN:
+            output = _LASER_CURRENT_MIN
+            self.laser_at_min_max = True
+            self.indicateLaserMinMax(True)
+
         if output != self.outputsFrame.doubleSpinBox_outIHalogen.value():  # if output is different, only then send update command
             self.outputsFrame.doubleSpinBox_outIHalogen.setValue(output)
         if errorSignal:
