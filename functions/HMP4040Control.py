@@ -27,7 +27,7 @@ class HMP4040Visa():
         try:
             self.inst = self.rm.open_resource(port)
             time.sleep(2)
-            printGreen('Connected to ' + str(self.inst.query('*IDN?')))
+            printGreen('Connected to ' + str(self.inst.query('*IDN?')))  # Instrument Identification Code
         except:
             printError('Could not connect to %s. Try another port.' % port)
             for s in self.rm.list_resources():
@@ -35,31 +35,37 @@ class HMP4040Visa():
                     print('%s identifies as: ' % str(s) ,self.rm.open_resource(str(s)).query('*IDN?'))
                 except:
                     printError('Could not identify %s' % str(s))
+        self.current_channel = None
 
     # returns power in Watts
-    def setOutput(self, ch = 4):
+    def setOutput(self, ch):
+        # If we're already on this channel, no need to send another command
+        if ch == self.current_channel:
+            return
         self.inst.write('INST OUT%s' % str(int(ch)))
+        self.current_channel = ch
         printGreen('Channel set to %s' % str(int(ch)))
-        return(float(ch))
+        return float(ch)
 
-    def setVoltage(self, v = 0):
+    def setVoltage(self, v=0):
         voltage = self.inst.write('VOLT %.3f' % float(v))
-        return(float(voltage))
-    def setCurrent(self, I = 0):
-        voltage = self.inst.write('CURR %.3f' % float(I))
-        return(float(voltage))
+        return float(voltage)
 
-    def outputState(self, state = 2):
+    def setCurrent(self, I=0):
+        voltage = self.inst.write('CURR %.3f' % float(I))
+        return float(voltage)
+
+    def outputState(self, state=2):
         #print('OUTP:SEL %s' % int(state / 2))
         self.inst.write('OUTP:SEL %s' % int(state / 2))
-        return (float(state))
+        return float(state)
 
     def getCurrent(self):
         cur = self.inst.query('CURR?')
-        return(float(cur))
+        return float(cur)
 
     def getVoltage(self):
         v = self.inst.query('VOLT?')
-        return(float(v))
+        return float(v)
 
 # h = HMP4040Visa()

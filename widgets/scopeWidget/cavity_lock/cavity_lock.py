@@ -15,10 +15,14 @@ import time
 import traceback
 
 _CONNECTION_ATTEMPTS = 2
+
 _HALOGEN_VOLTAGE_LIMIT = 12  # [VOLTS], 3.3 for red laser
+_HMP4040_HALOGEN_CHANNEL = 3  # TODO: what channel?
+
 _LASER_CURRENT_MAX = 0.28  # [AMPS]
 _LASER_CURRENT_MIN = 0.17  # [AMPS]
-_LASER_TYPICAL_VOLTAGE = 3  # [Volts]
+_LASER_TYPICAL_VOLTAGE = 3  # [Volts], max is 3.3
+_HMP4040_LASER_CHANNEL = 4
 
 try:
     from functions.cavity_lock.cavity_lock import CavityLock
@@ -45,7 +49,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.pid = None
         self.lockOn = False
         self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
-        self.changedOutputs = False # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
+        self.changedOutputs = False  # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
         self.last_save_time = time.time()
         self.prev_time_scale = 1.0
         self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
@@ -57,8 +61,8 @@ class Cavity_lock_GUI(Scope_GUI):
         self.hmp4040_available = True
         if self.hmp4040_available:
             self.HMP4040 = HMP4040Visa(port='ASRL6::INSTR')
-            self.HMP4040.setOutput(4)
-            self.HMP4040.outputState(2)
+            # self.HMP4040.setOutput(4)
+            self.HMP4040.outputState(2)  # turn it on
 
         # ----------- Velocity Instrument -----------
         # try:
@@ -179,10 +183,17 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.checkBox_ch1OuputState.stateChanged.connect(self.updateOutputChannels)
         self.outputsFrame.checkBox_ch2OuputState.stateChanged.connect(self.updateOutputChannels)
 
-        # HMP4040
+        # HMP4040 - Laser
+        # TODO: rename doubleSpinBox_outIHalogen to doubleSpinBox_outILaser (both in UI and code)
         self.outputsFrame.doubleSpinBox_outIHalogen.valueChanged.connect(self.updateHMP4040Current)
         self.outputsFrame.doubleSpinBox_outVHalogen.valueChanged.connect(self.updateHMP4040Voltage)
         self.outputsFrame.checkBox_halogenOuputState.stateChanged.connect(self.updateHMP4040State)
+
+        # HMP4040 - Halogen
+        # TODO: rename doubleSpinBox_outIHalogen_2 to doubleSpinBox_outIHalogen - without the "_2" (both in UI and code)
+        self.outputsFrame.doubleSpinBox_outIHalogen_2.valueChanged.connect(self.updateHMP4040HalogenCurrent)
+        self.outputsFrame.doubleSpinBox_outVHalogen_2.valueChanged.connect(self.updateHMP4040HalogenVoltage)
+        self.outputsFrame.checkBox_halogenOuputState_2.stateChanged.connect(self.updateHMP4040HalogenState)
 
     def updateTriggerSweep(self):
         self.rp.set_triggerSweep('NORMAL', True)
@@ -197,20 +208,45 @@ class Cavity_lock_GUI(Scope_GUI):
         self.rp.set_triggerSlope('FALLING', True)
         pass
 
+    #
+    # HMP4040 Laser Current/Voltage functions
+    #
     def updateHMP4040Current(self):
         if not self.hmp4040_available:
             return
+        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
         self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen.value())
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(self.HMP4040.getVoltage()))
     def updateHMP4040Voltage(self):
         if not self.hmp4040_available:
             return
+        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
         self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen.value())
         self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
     def updateHMP4040State(self):
         if not self.hmp4040_available:
             return
         self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
+
+    #
+    # HMP4040 Halogen Current/Voltage functions
+    #
+    def updateHMP4040HalogenCurrent(self):
+        if not self.hmp4040_available:
+            return
+        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
+        self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen_2.value())
+        self.outputsFrame.doubleSpinBox_outVHalogen_2.setValue(float(self.HMP4040.getVoltage()))
+    def updateHMP4040HalogenVoltage(self):
+        if not self.hmp4040_available:
+            return
+        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
+        self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen_2.value())
+        self.outputsFrame.doubleSpinBox_outIHalogen_2.setValue(float(self.HMP4040.getCurrent()))
+    def updateHMP4040HalogenState(self):
+        if not self.hmp4040_available:
+            return
+        self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState_2.checkState())
 
     def updateVelocityWavelength(self):
         v = self.doubleSpinBox_velocityWavelength.value()
@@ -261,6 +297,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.rp.set_outputFrequency(output=2, freq=float(self.outputsFrame.doubleSpinBox_ch2OutFreq.value()))
         self.rp.set_outputOffset(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutOffset.value()))
         self.rp.set_outputOffset(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutOffset.value()))
+        # The below should be deprecated - we're not using the RP outputs anymore
         self.rp.set_outputState(output=1, state=bool(self.outputsFrame.checkBox_ch1OuputState.checkState()))
         self.rp.set_outputState(output=2, state=bool(self.outputsFrame.checkBox_ch2OuputState.checkState()))
         self.rp.updateParameters()
@@ -395,7 +432,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
         if self.outputsFrame.checkBox_fitLorentzian.isChecked():
             popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
-                                        peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
+                                               peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
             params_text = self.multipleLorentziansParamsToText(popt)
             # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
             text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
@@ -412,7 +449,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # --------- Lock -----------
         if self.lockOn and self.selectedPeaksXY and len(self.selectedPeaksXY) == 2: # if, and only if, we have selected two peaks to lock on
-           self.lockPeakToPeak()
+            self.lockPeakToPeak()
 
         # -------- Save Data  --------:
         if self.checkBox_saveData.isChecked():
@@ -422,16 +459,16 @@ class Cavity_lock_GUI(Scope_GUI):
     def indicateLaserMinMax(self, warn=False):
         if warn:
             self.outputsFrame.doubleSpinBox_outIHalogen.setStyleSheet("QDoubleSpinBox"
-                                                            "{"
-                                                            #"border : 1px solid orange;"
-                                                            "background-color : orange;"
-                                                            "}")
+                                                                      "{"
+                                                                      #"border : 1px solid orange;"
+                                                                      "background-color : orange;"
+                                                                      "}")
         else:
             self.outputsFrame.doubleSpinBox_outIHalogen.setStyleSheet("QDoubleSpinBox"
-                                                            "{"
-                                                            #"border : 0px solid white;"
-                                                            "background-color : white;"
-                                                            "}")
+                                                                      "{"
+                                                                      #"border : 0px solid white;"
+                                                                      "background-color : white;"
+                                                                      "}")
         pass
 
     def lockPeakToPeak(self):
