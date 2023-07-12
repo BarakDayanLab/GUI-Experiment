@@ -186,28 +186,31 @@ class EOMLockGUI(Scope_GUI):
 
         if "lock" in combo_text:
             self.outputsFrame.pushButton_StartStop.setText('Start Lock')
-            self.mode = "lock"
-            # Set the trigger channel and mode
-            #self.rp.set_triggerSource('CH2', True)
+            self.mode = 'lock'
+            self.optimize = 'minimize'
+            # Set the trigger channel, mode & averaging
             self.comboBox_triggerSource.setCurrentIndex(1)  # 'Ch2'
-            #self.set_triggerSweep('NORMAL', True)
             self.comboBox_triggerSweep.setCurrentIndex(2)  # 'Normal'
+            self.spinBox_averaging_ch1.setValue(10)
+            self.updateAveraging()
         elif "sweep" in combo_text:
             self.outputsFrame.pushButton_StartStop.setText('Start Sweep')
-            self.mode = "sweep"
-            # Set the trigger channel and mode
-            #self.rp.set_triggerSource('CH2', True)
+            self.mode = 'sweep'
+            self.optimize = 'minimize'
+            # Set the trigger channel, mode & averaging
             self.comboBox_triggerSource.setCurrentIndex(1)  # 'Ch2'
-            #self.set_triggerSweep('NORMAL', True)
             self.comboBox_triggerSweep.setCurrentIndex(2)  # 'Normal'
+            self.spinBox_averaging_ch1.setValue(10)
+            self.updateAveraging()
         else:
             self.outputsFrame.pushButton_StartStop.setText('Dorko Fun!')
             self.mode = 'dorko'
-            # Set the trigger channel and mode
-            #self.rp.set_triggerSource('CH1', True)
+            self.optimize = 'maximize'
+            # Set the trigger channel, mode & averaging
             self.comboBox_triggerSource.setCurrentIndex(0)  # 'Ch1'
-            #self.set_triggerSweep('AUTO', True)
             self.comboBox_triggerSweep.setCurrentIndex(0)  # 'Auto'
+            self.spinBox_averaging_ch1.setValue(1)
+            self.updateAveraging()
         pass
 
     # Updates the step/weight params that affect the lock mechanism
@@ -312,8 +315,6 @@ class EOMLockGUI(Scope_GUI):
 
         self.changedOutputs = False
 
-        (low_average, high_average) = self.lows_and_highs(data[0])
-
         # Check signal
 
         #drop_rise_point = self.split_by_rising_falling_edges(data[1])
@@ -368,9 +369,13 @@ class EOMLockGUI(Scope_GUI):
         # --------- Lock/Sweep -----------
         #min1 = self.channel1_avg_data.min()
         #max1 = self.channel1_avg_data.max()
-        min2 = low_average
-        max2 = high_average
-        self.perform_lock(min2, max2)
+
+        #min2 = low_average
+        #max2 = high_average
+        #self.perform_lock(min2, max2)
+
+        # Perform Lock on the Channel 1 data (what comes from the detector)
+        self.perform_lock(data[0])
 
         # -------- Save Data  --------:
         if self.checkBox_saveData.isChecked():
@@ -433,30 +438,33 @@ class EOMLockGUI(Scope_GUI):
         self.prev_ns = ns
         return round(delta)
 
-    def perform_lock(self, min, max):
+    def perform_lock(self, data):
 
         self.iteration = self.iteration + 1
         if self.iteration % self.fix_rate > 0:
             return
 
+        (low_average, high_average) = self.lows_and_highs(data)
+        min = low_average
+        max = high_average
+
         # Offset min/max and fence it
-        min = min-self.offset
-        max = max-self.offset
+        min = min - self.offset
+        max = max - self.offset
         if min < 0:
             min = 0.001  # Avoid having extinction rate as INF
         if max < 0:
             max = 0
-        avg = (max+min)/2.0
 
         # Calculate extinction ratio
         extinction_ratio = max/min
 
-        # Calculate yy1 - the parameter we want use for locking
+        # Calculate yy1 - the parameter we want to use for locking
         if self.mode == 'lock':
-            #yy1 = self.average_yy1(max/min)
             yy1 = self.average_yy1(min/max)
         elif self.mode == 'dorko':
-            yy1 = self.average_yy1(avg)
+            avg = np.average(data, axis=0)
+            yy1 = self.average_yy1(avg)  # Averaging yy1 over time (each RP buffer produces one sample, we average those)
 
         # Handle threshold
         if extinction_ratio > self.er_threshold:
