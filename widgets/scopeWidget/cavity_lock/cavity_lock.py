@@ -191,9 +191,9 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # HMP4040 - Halogen
         # TODO: rename doubleSpinBox_outIHalogen_2 to doubleSpinBox_outIHalogen - without the "_2" (both in UI and code)
-        self.outputsFrame.doubleSpinBox_outIHalogen_2.valueChanged.connect(self.updateHMP4040HalogenCurrent)
-        self.outputsFrame.doubleSpinBox_outVHalogen_2.valueChanged.connect(self.updateHMP4040HalogenVoltage)
-        self.outputsFrame.checkBox_halogenOuputState_2.stateChanged.connect(self.updateHMP4040HalogenState)
+        # self.outputsFrame.doubleSpinBox_outIHalogen_2.valueChanged.connect(self.updateHMP4040HalogenCurrent)
+        # self.outputsFrame.doubleSpinBox_outVHalogen_2.valueChanged.connect(self.updateHMP4040HalogenVoltage)
+        # self.outputsFrame.checkBox_halogenOuputState_2.stateChanged.connect(self.updateHMP4040HalogenState)
 
     def updateTriggerSweep(self):
         self.rp.set_triggerSweep('NORMAL', True)
@@ -215,17 +215,20 @@ class Cavity_lock_GUI(Scope_GUI):
         if not self.hmp4040_available:
             return
         self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
-        self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen.value())
+        current_to_set = self.outputsFrame.doubleSpinBox_outIHalogen.value()
+        self.HMP4040.setCurrent(current_to_set)
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(self.HMP4040.getVoltage()))
     def updateHMP4040Voltage(self):
         if not self.hmp4040_available:
             return
         self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
-        self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen.value())
+        volts_to_set = self.outputsFrame.doubleSpinBox_outVHalogen.value()
+        self.HMP4040.setVoltage(volts_to_set)
         self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
     def updateHMP4040State(self):
         if not self.hmp4040_available:
             return
+        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
         self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
 
     #
@@ -246,6 +249,7 @@ class Cavity_lock_GUI(Scope_GUI):
     def updateHMP4040HalogenState(self):
         if not self.hmp4040_available:
             return
+        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
         self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState_2.checkState())
 
     def updateVelocityWavelength(self):
@@ -499,11 +503,11 @@ class Cavity_lock_GUI(Scope_GUI):
             self.indicateLaserMinMax(False)
             self.laser_at_min_max = False
 
-        if output > _LASER_CURRENT_MAX:
+        if output >= _LASER_CURRENT_MAX:
             output = _LASER_CURRENT_MAX
             self.laser_at_min_max = True
             self.indicateLaserMinMax(True)
-        elif output < _LASER_CURRENT_MIN:
+        elif output <= _LASER_CURRENT_MIN:
             output = _LASER_CURRENT_MIN
             self.laser_at_min_max = True
             self.indicateLaserMinMax(True)
