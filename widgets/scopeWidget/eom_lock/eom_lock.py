@@ -35,7 +35,7 @@ class EOMLockGUI(Scope_GUI):
         self.lock_on = False
         self.x = 4.9
         self.yy0 = 0
-        self.yy1_average = np.zeros(1)
+        self.yy1_average = np.zeros(1)  # The length of this array determines how many inputs we'll average
         self.step = None  # Gets overriden by UI anyways...
         self.nudge = None  # Gets overriden by UI anyways...
         self.er_threshold = None  # Gets overriden by UI anyways...
@@ -180,15 +180,34 @@ class EOMLockGUI(Scope_GUI):
     #     trigger_slope = self.comboBox_triggerSlope.currentText()  # get trigger slope (RISING, FALLING)
     #     self.rp.set_triggerSlope(trigger_slope.replace('Trg:', '').upper(), True)
 
+    # This method is called whenever the combox of the mode is changed in the UI
     def updateMode(self):
         combo_text = self.outputsFrame.comboBox_mode.currentText().lower()
 
         if "lock" in combo_text:
             self.outputsFrame.pushButton_StartStop.setText('Start Lock')
             self.mode = "lock"
-        else:
+            # Set the trigger channel and mode
+            #self.rp.set_triggerSource('CH2', True)
+            self.comboBox_triggerSource.setCurrentIndex(1)  # 'Ch2'
+            #self.set_triggerSweep('NORMAL', True)
+            self.comboBox_triggerSweep.setCurrentIndex(2)  # 'Normal'
+        elif "sweep" in combo_text:
             self.outputsFrame.pushButton_StartStop.setText('Start Sweep')
             self.mode = "sweep"
+            # Set the trigger channel and mode
+            #self.rp.set_triggerSource('CH2', True)
+            self.comboBox_triggerSource.setCurrentIndex(1)  # 'Ch2'
+            #self.set_triggerSweep('NORMAL', True)
+            self.comboBox_triggerSweep.setCurrentIndex(2)  # 'Normal'
+        else:
+            self.outputsFrame.pushButton_StartStop.setText('Dorko Fun!')
+            self.mode = 'dorko'
+            # Set the trigger channel and mode
+            #self.rp.set_triggerSource('CH1', True)
+            self.comboBox_triggerSource.setCurrentIndex(0)  # 'Ch1'
+            #self.set_triggerSweep('AUTO', True)
+            self.comboBox_triggerSweep.setCurrentIndex(0)  # 'Auto'
         pass
 
     # Updates the step/weight params that affect the lock mechanism
@@ -347,8 +366,8 @@ class EOMLockGUI(Scope_GUI):
             print(tb)
 
         # --------- Lock/Sweep -----------
-        min1 = self.channel1_avg_data.min()
-        max1 = self.channel1_avg_data.max()
+        #min1 = self.channel1_avg_data.min()
+        #max1 = self.channel1_avg_data.max()
         min2 = low_average
         max2 = high_average
         self.perform_lock(min2, max2)
@@ -381,7 +400,16 @@ class EOMLockGUI(Scope_GUI):
                 self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Sweeping]")
                 self.rp.print('Sweep started.', 'blue')
             self.sweeping = not self.sweeping
-            pass
+        elif self.mode == 'dorko':
+            if self.lock_on:
+                self.outputsFrame.pushButton_StartStop.setText('Dorko Fun!')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock OFF]")
+                self.rp.print('Lock stopped.', 'blue')
+            else:
+                self.outputsFrame.pushButton_StartStop.setText('Stop Lock')
+                self.outputsFrame.label_LockSettings.setText("EOM Lock Settings [Lock ON]")
+                self.rp.print('Lock started.', 'blue')
+            self.lock_on = not self.lock_on
 
     def reset_lock(self):
         pass
@@ -418,11 +446,17 @@ class EOMLockGUI(Scope_GUI):
             min = 0.001  # Avoid having extinction rate as INF
         if max < 0:
             max = 0
+        avg = (max+min)/2.0
 
-        # Calculate extinction ratio and yy1
+        # Calculate extinction ratio
         extinction_ratio = max/min
-        #yy1 = self.average_yy1(extinction_ratio)
-        yy1 = self.average_yy1(min/max)
+
+        # Calculate yy1 - the parameter we want use for locking
+        if self.mode == 'lock':
+            #yy1 = self.average_yy1(max/min)
+            yy1 = self.average_yy1(min/max)
+        elif self.mode == 'dorko':
+            yy1 = self.average_yy1(avg)
 
         # Handle threshold
         if extinction_ratio > self.er_threshold:
@@ -437,6 +471,8 @@ class EOMLockGUI(Scope_GUI):
         display_volts = self.x * (2.0 if self.OUTPUT_GAIN == 'X5' else 1.0)  # RD can output [-1:+1] or [-5:+5]
         if self.mode == 'lock':
             txt = "ER: %.2f  V: %.2f  yy1: %.2f  LR: %.2f" % (extinction_ratio, display_volts, yy1, sample_rate_khz)
+        elif self.mode == 'dorko':
+            txt = "Dorko: V: %.2f  yy1: %.2f  LR: %.2f" % (display_volts, yy1, sample_rate_khz)
         else:
             txt = "ER: %.2f  V: %.2f  yy1: %.2f  SW: %.2f" % (extinction_ratio, display_volts, yy1, self.svolts)
         self.outputsFrame.label_ExtinctionRatio.setText(txt)
@@ -447,7 +483,7 @@ class EOMLockGUI(Scope_GUI):
         if self.mode == 'sweep':
             if self.sweeping:
                 self.sweep(extinction_ratio, min)
-        elif self.mode == 'lock':
+        elif self.mode == 'lock' or self.mode == 'dorko':
             if self.lock_on:
                 # Should we change the sign of the step?
                 if self.optimize == 'minimize' and yy1 > self.yy0:

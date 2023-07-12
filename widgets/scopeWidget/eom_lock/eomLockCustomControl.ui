@@ -594,6 +594,11 @@
         <string>Sweep-Mode</string>
        </property>
       </item>
+      <item>
+       <property name="text">
+        <string>Dorko-Mode</string>
+       </property>
+      </item>  
      </widget>
     </item>
    </layout>
