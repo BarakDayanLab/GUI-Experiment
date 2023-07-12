@@ -3,6 +3,9 @@ from functions.AGUC2 import controller
 from pynput.keyboard import Key, Listener, Controller
 from pynput import keyboard
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 #
 # AGUC-2 is a Piezo Motor Motion Controller
 # (do not confuse with AGUC-8 which controls 8 axis)
@@ -69,6 +72,54 @@ class aguc2_test:
         self.c.close()
         pass
 
+
+class MyTestClass:
+
+    def __init__(self):
+        pass
+
+    def test_something(self):
+
+        # a little hack to get screen size; from here [1]
+        mgr = plt.get_current_fig_manager()
+        mgr.full_screen_toggle()
+        py = mgr.canvas.height()
+        px = mgr.canvas.width()
+        mgr.window.close()
+        # hack end
+
+        px = 0
+
+        figManager = plt.get_current_fig_manager()
+        # if px=0, plot will display on 1st screen
+        figManager.window.move(px, 0)
+        figManager.window.showMaximized()
+        figManager.window.setFocus()
+
+        plt.figure()
+        # Data for plotting
+        t = np.arange(0.0, 2.0, 0.01)
+        s = 1 + np.sin(2 * np.pi * t)
+
+        fig, ax = plt.subplots()
+        ax.plot(t, s)
+
+        ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+               title='About as simple as it gets, folks')
+        ax.grid()
+
+        # fig.savefig("test.png")
+        plt.show(block=False)
+
+        plt.pause(0.01)
+        time.sleep(20)
+        plt.close()
+        pass
+
+
 if __name__ == "__main__":
     cl = aguc2_test()
     cl.test_it()
+
+    # cl = MyTestClass()
+    # cl.test_something()
