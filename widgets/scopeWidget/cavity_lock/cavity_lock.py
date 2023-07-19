@@ -60,7 +60,7 @@ class Cavity_lock_GUI(Scope_GUI):
         # ----------- HMP4040 Control -----------
         self.hmp4040_available = True
         if self.hmp4040_available:
-            self.HMP4040 = HMP4040Visa(port='ASRL6::INSTR')
+            self.HMP4040 = HMP4040Visa(port='ASRL4::INSTR')  # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
             # self.HMP4040.setOutput(4)
             self.HMP4040.outputState(2)  # turn it on
 
@@ -147,7 +147,8 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def save_error_signal(self):
         self.all_error_signals = []
-        all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error')
+        all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error')
+        #all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error')
         dt_string = time.strftime('%d-%m-%y')
         self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
         if not os.path.exists(self.all_err_dated):
@@ -281,9 +282,10 @@ class Cavity_lock_GUI(Scope_GUI):
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
 
         # save all the error signal such that it can be plotted as function of time
-        time_string = time.strftime("%H-%M-%S")
-        all_error_signals_root = os.path.join(self.all_err_dated, 'all_locking_err' + time_string + '.npy')
-        np.save(all_error_signals_root, self.all_error_signals)
+        if False:
+            time_string = time.strftime("%H-%M-%S")
+            all_error_signals_root = os.path.join(self.all_err_dated, 'all_locking_err', time_string + '.npy')
+            np.save(all_error_signals_root, self.all_error_signals)
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):
@@ -484,7 +486,10 @@ class Cavity_lock_GUI(Scope_GUI):
         # with open(locking_error_path,'a') as f:
         #     lines = f.writelines('%d' %errorSignal)
         #     f.close()
-        np.save(locking_error_path, errorSignal)
+        try:
+            np.save(locking_error_path, errorSignal)
+        except Exception as e:
+            print(e)
         self.all_error_signals += [errorSignal]
 
 
