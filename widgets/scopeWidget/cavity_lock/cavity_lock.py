@@ -50,9 +50,13 @@ class Cavity_lock_GUI(Scope_GUI):
         self.lockOn = False
         self.outputOffset = (_LASER_CURRENT_MAX + _LASER_CURRENT_MIN) / 2  # [mAmps]; default. should be value of laser output when lock is started.
         self.changedOutputs = False  # this keeps track of changes done to outputs. if this is true, no total-redraw will happen (although usually we would update scope after any change in RP)
-        self.last_save_time = time.time()
+        self.cavity_spectrum_last_save_time = time.time()
+        self.error_signal_last_save_time = time.time()
         self.prev_time_scale = 1.0
         self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
+
+        self.locking_error_path = os.path.join(self.MOUNT_DRIVE,
+                                               r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error\locking_err.npy')
 
         # ---------- Rb Peaks ----------
         self.selectedPeaksXY = None
@@ -61,7 +65,6 @@ class Cavity_lock_GUI(Scope_GUI):
         self.hmp4040_available = True
         if self.hmp4040_available:
             self.HMP4040 = HMP4040Visa(port='ASRL4::INSTR')  # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
-            # self.HMP4040.setOutput(4)
             self.HMP4040.outputState(2)  # turn it on
 
         # ----------- Velocity Instrument -----------
@@ -96,8 +99,8 @@ class Cavity_lock_GUI(Scope_GUI):
         # -- Set output voltage ---
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(_LASER_TYPICAL_VOLTAGE)
 
-        # save error signal
-        self.save_error_signal()
+        # Prepare the error signal folder
+        self.create_error_signal_folder()
 
         # Set title and maximize window
         self.setWindowTitle('Cavity Locker')
@@ -123,10 +126,10 @@ class Cavity_lock_GUI(Scope_GUI):
                 print(e)
 
     def save_cavity_snapshot(self, data):
-        time_passed = time.time() - self.last_save_time
+        time_passed = time.time() - self.cavity_spectrum_last_save_time
         if time_passed < 60*5:  # Every 5 minutes
             return
-        self.last_save_time = time.time()
+        self.cavity_spectrum_last_save_time = time.time()
         time_str = time.strftime("%Y%m%d-%H%M%S")
         date_str = time.strftime("%Y%m%d")
 
@@ -145,10 +148,9 @@ class Cavity_lock_GUI(Scope_GUI):
             print(tb)
             pass
 
-    def save_error_signal(self):
-        self.all_error_signals = []
+    def create_error_signal_folder(self):
+        #self.all_error_signals = []
         all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error')
-        #all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2021-2022\Experiment_results\Sprint\Locking_PID_Error')
         dt_string = time.strftime('%d-%m-%y')
         self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
         if not os.path.exists(self.all_err_dated):
@@ -156,7 +158,6 @@ class Cavity_lock_GUI(Scope_GUI):
                 os.makedirs(self.all_err_dated)
             except Exception as e:
                 print(e)
-                pass  # TODO: Show message we were not able to create error file
         self.time_string = time.strftime("%H-%M-%S")
 
     def connect_custom_ui_controls(self):
@@ -280,12 +281,6 @@ class Cavity_lock_GUI(Scope_GUI):
         D = float(self.outputsFrame.doubleSpinBox_D.value()/self.DIVIDER)
         self.pid = PID(P, I, D, setpoint=0, output_limits=(_LASER_CURRENT_MIN - self.outputOffset, _LASER_CURRENT_MAX - self.outputOffset),
                        sample_time=0.5) if self.lockOn else None # sample_time [seconds], time at which PID is updated
-
-        # save all the error signal such that it can be plotted as function of time
-        if False:
-            time_string = time.strftime("%H-%M-%S")
-            all_error_signals_root = os.path.join(self.all_err_dated, 'all_locking_err', time_string + '.npy')
-            np.save(all_error_signals_root, self.all_error_signals)
 
     # Zero the data buffers upon averaging params change (invoked by super-class)
     def averaging_parameters_updated(self):
@@ -481,17 +476,14 @@ class Cavity_lock_GUI(Scope_GUI):
         errorDirection = 1 if self.outputsFrame.checkBox_lockInverse.isChecked() else - 1
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
-        # save error signal for thrshold in sprint experiments
-        locking_error_path = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error\locking_err.npy')
-        # with open(locking_error_path,'a') as f:
-        #     lines = f.writelines('%d' %errorSignal)
-        #     f.close()
-        try:
-            np.save(locking_error_path, errorSignal)
-        except Exception as e:
-            print(e)
-        self.all_error_signals += [errorSignal]
-
+        # Save error signal for threshold in sprint experiments
+        time_passed = time.time() - self.error_signal_last_save_time
+        self.error_signal_last_save_time = time.time()
+        if time_passed > 5:  # 5 seconds (or more) passed since last write?
+            try:
+                np.save(self.locking_error_path, errorSignal)
+            except Exception as e:
+                print(e)
 
         # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
