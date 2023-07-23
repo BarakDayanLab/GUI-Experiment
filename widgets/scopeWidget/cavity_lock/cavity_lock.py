@@ -171,7 +171,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_D.valueChanged.connect(self.updatePID)
 
         # Output spinboxes & buttons
-        self.outputsFrame.pushButton_StartLock.clicked.connect(self.toggleLock)
+        self.outputsFrame.pushButton_StartStopLock.clicked.connect(self.toggleLock)
         self.outputsFrame.pushButton_selectPeak.clicked.connect(self.scopeListenForMouseClick)
 
         self.outputsFrame.comboBox_ch1OutFunction.currentIndexChanged.connect(self.updateOutputChannels)
@@ -272,6 +272,10 @@ class Cavity_lock_GUI(Scope_GUI):
             self.pid.tunings = (P, I, D)
 
     def toggleLock(self):
+        if self.lock_on:
+            self.outputsFrame.pushButton_StartStop.setText('Start Lock')
+        else:
+            self.outputsFrame.pushButton_StartStop.setText('Stop Lock')
         self.lockOn = not self.lockOn
         self.outputsFrame.checkBox_halogenOuputState.setChecked(self.lockOn)  # Set the halogen checkbox on/off
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()

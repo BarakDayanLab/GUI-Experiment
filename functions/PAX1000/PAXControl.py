@@ -2,22 +2,26 @@ import time
 import math
 import numpy as np
 import pyvisa
+from pylablib.devices import Thorlabs
 
 
 class PAXControl:
+    PORT = 'USB0::0x1313::0x8031::M00817173::INSTR'
+    def __init__(self, port=None):
 
-    def __init__(self, port='ASRL7::INSTR'):
+        if not port:
+            self.port = self.PORT
+
         self.rm = pyvisa.ResourceManager()
         resources = self.rm.list_resources()
-        port = 'USB0::0x1313::0x8031::M00817173::INSTR'
         try:
-            self.inst = self.rm.open_resource(port)
+            self.inst = self.rm.open_resource(self.port)
             time.sleep(1)
             idn = self.inst.query('*IDN?')
 
             self.log('Connected to ' + str(self.inst.query('*IDN?')))  # Instrument Identification Code
         except Exception as err:
-            self.log('Could not connect to %s. Try another port.' % port)
+            self.log('Could not connect to %s. Try another port.' % self.port)
             for s in self.rm.list_resources():
                 try:
                     self.log('%s identifies as: %s' % (str(s), self.rm.open_resource(str(s)).query('*IDN?')))
@@ -56,4 +60,5 @@ if __name__ == "__main__":
 
     pc = PAXControl()
     pc.readSomething()
+
     pass
