@@ -851,7 +851,7 @@
      </widget>
     </item>
     <item row="5" column="0" colspan="3">
-     <widget class="QPushButton" name="pushButton_StartLock">
+     <widget class="QPushButton" name="pushButton_StartStopLock">
       <property name="font">
        <font>
         <pointsize>10</pointsize>
@@ -860,7 +860,7 @@
        </font>
       </property>
       <property name="text">
-       <string>LOCK</string>
+       <string>Start Lock</string>
       </property>
      </widget>
     </item>
