@@ -14,11 +14,15 @@ from functions.HMP4040Control import HMP4040Visa
 import time
 import traceback
 
+STATE_OFF = 0
+STATE_ON = 1
 _CONNECTION_ATTEMPTS = 2
 
+# Halogen Parameters
 _HALOGEN_VOLTAGE_LIMIT = 12  # [VOLTS], 3.3 for red laser
-_HMP4040_HALOGEN_CHANNEL = 3  # TODO: what channel?
+_HMP4040_HALOGEN_CHANNEL = 3
 
+# Laser Parameters
 _LASER_CURRENT_MAX = 0.28  # [AMPS]
 _LASER_CURRENT_MIN = 0.17  # [AMPS]
 _LASER_TYPICAL_VOLTAGE = 3  # [Volts], max is 3.3
@@ -61,8 +65,14 @@ class Cavity_lock_GUI(Scope_GUI):
         self.hmp4040_available = True
         if self.hmp4040_available:
             self.HMP4040 = HMP4040Visa(port='ASRL4::INSTR')  # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
-            # self.HMP4040.setOutput(4)
-            self.HMP4040.outputState(2)  # turn it on
+
+            # We start with Laser OFF
+            self.HMP4040.setOutputChannel(_HMP4040_LASER_CHANNEL)
+            self.HMP4040.outputState(STATE_OFF)  # turn it OFF
+
+            # We start with Halogen ON
+            self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
+            self.HMP4040.outputState(STATE_ON)  # turn it ON
 
         # ----------- Velocity Instrument -----------
         # try:
@@ -192,9 +202,9 @@ class Cavity_lock_GUI(Scope_GUI):
 
         # HMP4040 - Halogen
         # TODO: rename doubleSpinBox_outIHalogen_2 to doubleSpinBox_outIHalogen - without the "_2" (both in UI and code)
-        # self.outputsFrame.doubleSpinBox_outIHalogen_2.valueChanged.connect(self.updateHMP4040HalogenCurrent)
-        # self.outputsFrame.doubleSpinBox_outVHalogen_2.valueChanged.connect(self.updateHMP4040HalogenVoltage)
-        # self.outputsFrame.checkBox_halogenOuputState_2.stateChanged.connect(self.updateHMP4040HalogenState)
+        #self.outputsFrame.doubleSpinBox_outIHalogen_2.valueChanged.connect(self.updateHMP4040HalogenCurrent)
+        self.outputsFrame.doubleSpinBox_outVHalogen_2.valueChanged.connect(self.updateHMP4040HalogenVoltage)
+        self.outputsFrame.checkBox_halogenOuputState_2.stateChanged.connect(self.updateHMP4040HalogenState)
 
     def updateTriggerSweep(self):
         self.rp.set_triggerSweep('NORMAL', True)
@@ -210,27 +220,40 @@ class Cavity_lock_GUI(Scope_GUI):
         pass
 
     #
-    # HMP4040 Laser Current/Voltage functions
+    # HMP4040 Green Laser Current/Voltage functions
     #
     def updateHMP4040Current(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
+
+        # Switch to Laser channel, and set the current
+        self.HMP4040.setOutputChannel(_HMP4040_LASER_CHANNEL)
         current_to_set = self.outputsFrame.doubleSpinBox_outIHalogen.value()
         self.HMP4040.setCurrent(current_to_set)
-        self.outputsFrame.doubleSpinBox_outVHalogen.setValue(float(self.HMP4040.getVoltage()))
+
+        # Get the volts reading, and set it in spinner
+        volts_reading = float(self.HMP4040.getVoltage())
+        self.outputsFrame.doubleSpinBox_outVHalogen.setValue(volts_reading)
     def updateHMP4040Voltage(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
+
+        # Switch to Laser channel, and set the voltage
+        self.HMP4040.setOutputChannel(_HMP4040_LASER_CHANNEL)
         volts_to_set = self.outputsFrame.doubleSpinBox_outVHalogen.value()
         self.HMP4040.setVoltage(volts_to_set)
-        self.outputsFrame.doubleSpinBox_outIHalogen.setValue(float(self.HMP4040.getCurrent()))
+
+        # Get the current reading, and set it in the spinner
+        current_reading = float(self.HMP4040.getCurrent())
+        self.outputsFrame.doubleSpinBox_outIHalogen.setValue(current_reading)
     def updateHMP4040State(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_LASER_CHANNEL)
-        self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState.checkState())
+        self.HMP4040.setOutputChannel(_HMP4040_LASER_CHANNEL)
+
+        value_to_set = self.outputsFrame.checkBox_halogenOuputState.checkState()
+        on_off = STATE_OFF if value_to_set == 0 else STATE_ON
+        self.HMP4040.outputState(on_off)
 
     #
     # HMP4040 Halogen Current/Voltage functions
@@ -238,20 +261,35 @@ class Cavity_lock_GUI(Scope_GUI):
     def updateHMP4040HalogenCurrent(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
-        self.HMP4040.setCurrent(self.outputsFrame.doubleSpinBox_outIHalogen_2.value())
-        self.outputsFrame.doubleSpinBox_outVHalogen_2.setValue(float(self.HMP4040.getVoltage()))
+
+        # Switch to Halogen channel, and set the current
+        self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
+        current_to_set = self.outputsFrame.doubleSpinBox_outIHalogen_2.value()
+        self.HMP4040.setCurrent(current_to_set)
+
+        # Read the voltage value, so we can update the spinner
+        volts_reading = float(self.HMP4040.getVoltage())
+        self.outputsFrame.doubleSpinBox_outVHalogen_2.setValue(volts_reading)
     def updateHMP4040HalogenVoltage(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
-        self.HMP4040.setVoltage(self.outputsFrame.doubleSpinBox_outVHalogen_2.value())
-        self.outputsFrame.doubleSpinBox_outIHalogen_2.setValue(float(self.HMP4040.getCurrent()))
+
+        # Switch to Halogen channel, and set the voltage
+        self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
+        volts_to_set = self.outputsFrame.doubleSpinBox_outVHalogen_2.value()
+        self.HMP4040.setVoltage(volts_to_set)
+
+        # Read the current value, so we can upadte the spinner
+        current_reading = float(self.HMP4040.getCurrent())
+        self.outputsFrame.doubleSpinBox_outIHalogen_2.setValue(current_reading)
     def updateHMP4040HalogenState(self):
         if not self.hmp4040_available:
             return
-        self.HMP4040.setOutput(_HMP4040_HALOGEN_CHANNEL)
-        self.HMP4040.outputState(self.outputsFrame.checkBox_halogenOuputState_2.checkState())
+        self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
+
+        value_to_set = self.outputsFrame.checkBox_halogenOuputState_2.checkState()
+        on_off = STATE_OFF if value_to_set == 0 else STATE_ON
+        self.HMP4040.outputState(on_off)
 
     def updateVelocityWavelength(self):
         v = self.doubleSpinBox_velocityWavelength.value()

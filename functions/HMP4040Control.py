@@ -37,6 +37,15 @@ class HMP4040Visa():
                     printError('Could not identify %s' % str(s))
         self.current_channel = None
 
+    def setOutputChannel(self, ch):
+        # If we're already on this channel, no need to send another command
+        if ch == self.current_channel:
+            return
+        self.inst.write('INST OUT%s' % str(int(ch)))
+        self.current_channel = ch
+        printGreen('Channel set to %s' % str(int(ch)))
+        return float(ch)
+
     # returns power in Watts
     def setOutput(self, ch):
         # If we're already on this channel, no need to send another command
@@ -55,8 +64,11 @@ class HMP4040Visa():
         voltage = self.inst.write('CURR %.3f' % float(I))
         return float(voltage)
 
-    def outputState(self, state=2):
-        #print('OUTP:SEL %s' % int(state / 2))
+    def outputState(self, state=0):  # 0 = OFF,  1 = ON
+        self.inst.write('OUTP:SEL %s' % state)
+        return float(state)
+
+    def outputState_DEP(self, state=2):
         self.inst.write('OUTP:SEL %s' % int(state / 2))
         return float(state)
 
