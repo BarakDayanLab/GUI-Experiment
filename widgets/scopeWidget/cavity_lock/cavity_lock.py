@@ -59,6 +59,8 @@ class Cavity_lock_GUI(Scope_GUI):
         self.prev_time_scale = 1.0
         self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
 
+        self.halogen_voltage_file_path = '%s\\halogen_voltage.txt' % os.getcwd()
+
         self.locking_error_path = os.path.join(self.MOUNT_DRIVE,
                                                r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error\locking_err.npy')
 
@@ -77,6 +79,9 @@ class Cavity_lock_GUI(Scope_GUI):
             # We start with Halogen ON
             self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
             self.HMP4040.outputState(STATE_ON)  # turn it ON
+            initial_halogen_voltage_value = self.get_halogen_initial_voltage_value()
+            self.HMP4040.setVoltage(initial_halogen_voltage_value)
+
 
         # ----------- Velocity Instrument -----------
         # try:
@@ -116,6 +121,31 @@ class Cavity_lock_GUI(Scope_GUI):
         # Set title and maximize window
         self.setWindowTitle('Cavity Locker')
         self.showMaximized()  # maximize()
+
+    # Read Halogen last voltage from file (if file does not exist, create it)
+    def get_halogen_initial_voltage_value(self):
+        volts = "3.0"
+
+        # Attempt to load last Halogen value from file
+        try:
+            with open(self.halogen_voltage_file_path) as f:
+                volts = f.readlines()
+        except Exception as err:
+            # If it's the first time this is opened in a new computer, the file may not exist, so create it
+            with open(self.halogen_voltage_file_path, 'w') as f:
+                f.write("3.0")
+
+        return float(volts[0])
+
+    def set_halogen_initial_voltage_value(self, volts):
+
+        # Attempt to load last Halogen value from file
+        try:
+            with open(self.halogen_voltage_file_path, 'w') as f:
+                f.write('%s' % volts)
+        except Exception as err:
+            print('Failed to write Halogen volts value: %s' % err)
+        return
 
     def configure_input_channels(self):
         # Set channel 1
@@ -272,6 +302,7 @@ class Cavity_lock_GUI(Scope_GUI):
         # Read the voltage value, so we can update the spinner
         volts_reading = float(self.HMP4040.getVoltage())
         self.outputsFrame.doubleSpinBox_outVHalogen_2.setValue(volts_reading)
+
     def updateHMP4040HalogenVoltage(self):
         if not self.hmp4040_available:
             return
@@ -281,9 +312,13 @@ class Cavity_lock_GUI(Scope_GUI):
         volts_to_set = self.outputsFrame.doubleSpinBox_outVHalogen_2.value()
         self.HMP4040.setVoltage(volts_to_set)
 
-        # Read the current value, so we can upadte the spinner
+        # Update the value in the file
+        self.set_halogen_initial_voltage_value(volts_to_set)
+
+        # Read the current value, so we can update the spinner
         current_reading = float(self.HMP4040.getCurrent())
         self.outputsFrame.doubleSpinBox_outIHalogen_2.setValue(current_reading)
+
     def updateHMP4040HalogenState(self):
         if not self.hmp4040_available:
             return
