@@ -15,7 +15,16 @@ class MPC320Control:
 
         # Check that the device id is in the list of Kinesis devices
         devices = Thorlabs.list_kinesis_devices()
-        self.device = devices[0]
+
+        if len(devices) == 0:
+            raise Exception('Cannot connect to polarization controller')
+
+        # Check that one of the devices is indeed our device
+        device_names = list(map(lambda x: x[0], devices))
+        if device_id not in device_names:
+            raise Exception('Cannot find device id in connected Kinesis devices')
+
+        self.device = devices[device_names.index(device_id)]
 
         # Get the device (aka stage)
         self.stage = Thorlabs.KinesisMotor(self.DEVICE_ID, is_rack_system=False)  # True

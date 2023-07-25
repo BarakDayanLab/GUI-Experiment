@@ -196,15 +196,14 @@ class Scope_GUI(QuantumWidget):
         timeScale = np.linspace(0, float(self.scope_parameters['OSC_TIME_SCALE']['value']) * 10, num=int(self.scope_parameters['OSC_DATA_SIZE']['value']))
         now = datetime.now()
         today = date.today()
-        # datadir = os.path.join("C:\\", "Pycharm", "Expriements", "DATA", "CavityLock")
-        datadir = os.path.join("U:\\", "Lab_2021-2022", "Experiment_results", "Python Data")
+        datadir = os.path.join("U:\\", "Lab_2023", "Experiment_results", "Python Data")
         todayformated = today.strftime("%B-%d-%Y")
         todaydatadir = os.path.join(datadir, todayformated)
         nowformated = now.strftime("%H-%M-%S_%f")
         try:
             os.makedirs(todaydatadir)
             if not self.checkBox_saveData.isChecked():
-                self.print_to_dialogue("Created folder Lab_2021-2022/Experiment_results/Python Data/%s" % (todayformated))
+                self.print_to_dialogue("Created folder Lab_2023/Experiment_results/Python Data/%s" % (todayformated))
                 self.print_to_dialogue("Data Saved")
         except FileExistsError:
             if not self.checkBox_saveData.isChecked():
