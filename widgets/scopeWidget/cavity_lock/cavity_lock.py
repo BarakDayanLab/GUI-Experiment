@@ -58,6 +58,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.error_signal_last_save_time = time.time()
         self.prev_time_scale = 1.0
         self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
+        self.HMP4040_AVAILABLE = False
 
         self.halogen_voltage_file_path = '%s\\halogen_voltage.txt' % os.getcwd()
 
@@ -68,8 +69,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.selectedPeaksXY = None
 
         # ----------- HMP4040 Control -----------
-        self.hmp4040_available = True
-        if self.hmp4040_available:
+        if self.HMP4040_AVAILABLE:
             self.HMP4040 = HMP4040Visa(port='ASRL4::INSTR')  # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
 
             # We start with Laser OFF
@@ -166,19 +166,40 @@ class Cavity_lock_GUI(Scope_GUI):
             except Exception as e:
                 print(e)
 
+    # Prepare the full path to write a file and ensure folder exists (create it if does not exist)
+    # Example:
+    #         file_topic = "Cavity_Spectrum"
+    #         file_suffix = "_spectrum.npy"
+    #         file_extension = "png"
+    #
+    # Yields:
+    #         "U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230726\171020_spectrum.npy"
+    #
+    def prepare_file_name(self, file_topic, file_suffix, file_extension):
+        time_str = time.strftime("%Y%m%d-%H%M%S")
+        date_str = time.strftime("%Y%m%d")
+
+        folder_path = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
+        self.ensure_dir_exists(folder_path)
+        full_path = f'{folder_path}\\{time_str}_{file_topic}.{file_extension}'
+
+        return full_path
+
     def save_cavity_snapshot(self, data):
         time_passed = time.time() - self.cavity_spectrum_last_save_time
         if time_passed < 60*5:  # Every 5 minutes
             return
         self.cavity_spectrum_last_save_time = time.time()
-        time_str = time.strftime("%Y%m%d-%H%M%S")
-        date_str = time.strftime("%Y%m%d")
+        #time_str = time.strftime("%Y%m%d-%H%M%S")
+        #date_str = time.strftime("%Y%m%d")
 
-        root_dirname = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
-        self.ensure_dir_exists(root_dirname)
+        #root_dirname = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
+        #self.ensure_dir_exists(root_dirname)
 
-        file_name_1 = root_dirname + f'\\{time_str}_spectrum.npy'
-        file_name_2 = root_dirname + f'\\{time_str}_figure.png'
+        #file_name_1 = root_dirname + f'\\{time_str}_spectrum.npy'
+        #file_name_2 = root_dirname + f'\\{time_str}_figure.png'
+        file_name_1 = self.prepare_file_name('Cavity_Spectrum', 'spectrum', 'npy')
+        file_name_2 = self.prepare_file_name('Cavity_Spectrum', 'figure', 'npy')
 
         try:
             if len(data) > 0:
@@ -190,7 +211,6 @@ class Cavity_lock_GUI(Scope_GUI):
             pass
 
     def create_error_signal_folder(self):
-        #self.all_error_signals = []
         all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error')
         dt_string = time.strftime('%d-%m-%y')
         self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
@@ -199,7 +219,6 @@ class Cavity_lock_GUI(Scope_GUI):
                 os.makedirs(self.all_err_dated)
             except Exception as e:
                 print(e)
-        self.time_string = time.strftime("%H-%M-%S")
 
     def connect_custom_ui_controls(self):
         self.checkBox_Rb_lines.clicked.connect(self.chns_update)
@@ -255,7 +274,7 @@ class Cavity_lock_GUI(Scope_GUI):
     # HMP4040 Green Laser Current/Voltage functions
     #
     def updateHMP4040Current(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
 
         # Switch to Laser channel, and set the current
@@ -267,7 +286,7 @@ class Cavity_lock_GUI(Scope_GUI):
         volts_reading = float(self.HMP4040.getVoltage())
         self.outputsFrame.doubleSpinBox_outVHalogen.setValue(volts_reading)
     def updateHMP4040Voltage(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
 
         # Switch to Laser channel, and set the voltage
@@ -279,7 +298,7 @@ class Cavity_lock_GUI(Scope_GUI):
         current_reading = float(self.HMP4040.getCurrent())
         self.outputsFrame.doubleSpinBox_outIHalogen.setValue(current_reading)
     def updateHMP4040State(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
         self.HMP4040.setOutputChannel(_HMP4040_LASER_CHANNEL)
 
@@ -291,7 +310,7 @@ class Cavity_lock_GUI(Scope_GUI):
     # HMP4040 Halogen Current/Voltage functions
     #
     def updateHMP4040HalogenCurrent(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
 
         # Switch to Halogen channel, and set the current
@@ -304,7 +323,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_outVHalogen_2.setValue(volts_reading)
 
     def updateHMP4040HalogenVoltage(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
 
         # Switch to Halogen channel, and set the voltage
@@ -320,7 +339,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.outputsFrame.doubleSpinBox_outIHalogen_2.setValue(current_reading)
 
     def updateHMP4040HalogenState(self):
-        if not self.hmp4040_available:
+        if not self.HMP4040_AVAILABLE:
             return
         self.HMP4040.setOutputChannel(_HMP4040_HALOGEN_CHANNEL)
 
@@ -346,10 +365,10 @@ class Cavity_lock_GUI(Scope_GUI):
             self.pid.tunings = (P, I, D)
 
     def toggleLock(self):
-        if self.lock_on:
-            self.outputsFrame.pushButton_StartStop.setText('Start Lock')
+        if self.lockOn:
+            self.outputsFrame.pushButton_StartStopLock.setText('Start Lock')
         else:
-            self.outputsFrame.pushButton_StartStop.setText('Stop Lock')
+            self.outputsFrame.pushButton_StartStopLock.setText('Stop Lock')
         self.lockOn = not self.lockOn
         self.outputsFrame.checkBox_halogenOuputState.setChecked(self.lockOn)  # Set the halogen checkbox on/off
         self.outputOffset = self.outputsFrame.doubleSpinBox_outIHalogen.value()
@@ -510,8 +529,9 @@ class Cavity_lock_GUI(Scope_GUI):
         text_box_string = None
 
         if self.outputsFrame.checkBox_fitLorentzian.isChecked():
-            popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
-                                               peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
+            popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], params_0=None)
+            # popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
+            #                                    peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
             params_text = self.multipleLorentziansParamsToText(popt)
             # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
             text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
@@ -559,7 +579,12 @@ class Cavity_lock_GUI(Scope_GUI):
         self.error_signal_last_save_time = time.time()
         if time_passed > 5:  # 5 seconds (or more) passed since last write?
             try:
+                # Save the current error in a file - for the Control code to take
                 np.save(self.locking_error_path, errorSignal)
+                # Save the current error in a dated file
+                file_name = self.prepare_file_name('Locking_PID_Error', 'locking_err', 'txt')
+                with open(file_name, 'w') as f:
+                    f.write(errorSignal)
             except Exception as e:
                 print(e)
 
