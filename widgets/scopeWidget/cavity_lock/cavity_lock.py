@@ -169,19 +169,23 @@ class Cavity_lock_GUI(Scope_GUI):
     # Prepare the full path to write a file and ensure folder exists (create it if does not exist)
     # Example:
     #         file_topic = "Cavity_Spectrum"
-    #         file_suffix = "_spectrum.npy"
+    #         file_suffix = "_spectrum"
     #         file_extension = "png"
     #
     # Yields:
     #         "U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230726\171020_spectrum.npy"
     #
-    def prepare_file_name(self, file_topic, file_suffix, file_extension):
+    def prepare_file_name(self, file_topic, file_suffix, file_extension, date_only=False):
         time_str = time.strftime("%Y%m%d-%H%M%S")
         date_str = time.strftime("%Y%m%d")
 
-        folder_path = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
+        folder_path = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\{file_topic}\\{date_str}'
         self.ensure_dir_exists(folder_path)
-        full_path = f'{folder_path}\\{time_str}_{file_topic}.{file_extension}'
+
+        if date_only:
+            full_path = f'{folder_path}\\{file_suffix}.{file_extension}'
+        else:
+            full_path = f'{folder_path}\\{time_str}_{file_suffix}.{file_extension}'
 
         return full_path
 
@@ -190,16 +194,8 @@ class Cavity_lock_GUI(Scope_GUI):
         if time_passed < 60*5:  # Every 5 minutes
             return
         self.cavity_spectrum_last_save_time = time.time()
-        #time_str = time.strftime("%Y%m%d-%H%M%S")
-        #date_str = time.strftime("%Y%m%d")
-
-        #root_dirname = f'{self.MOUNT_DRIVE}Lab_2023\\Experiment_results\\QRAM\\Cavity_Spectrum\\{date_str}\\'
-        #self.ensure_dir_exists(root_dirname)
-
-        #file_name_1 = root_dirname + f'\\{time_str}_spectrum.npy'
-        #file_name_2 = root_dirname + f'\\{time_str}_figure.png'
         file_name_1 = self.prepare_file_name('Cavity_Spectrum', 'spectrum', 'npy')
-        file_name_2 = self.prepare_file_name('Cavity_Spectrum', 'figure', 'npy')
+        file_name_2 = self.prepare_file_name('Cavity_Spectrum', 'figure', 'png')
 
         try:
             if len(data) > 0:
@@ -212,7 +208,7 @@ class Cavity_lock_GUI(Scope_GUI):
 
     def create_error_signal_folder(self):
         all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error')
-        dt_string = time.strftime('%d-%m-%y')
+        dt_string = time.strftime('%Y%m%d')
         self.all_err_dated = os.path.join(all_error_sig_root, dt_string)
         if not os.path.exists(self.all_err_dated):
             try:
@@ -575,16 +571,18 @@ class Cavity_lock_GUI(Scope_GUI):
         errorSignal = 1e-1 * (self.selectedPeaksXY[1][0] - self.selectedPeaksXY[0][0] + float(self.outputsFrame.doubleSpinBox_lockOffset.value())) * (errorDirection) # error in [ms] on rp
 
         # Save error signal for threshold in sprint experiments
-        time_passed = time.time() - self.error_signal_last_save_time
-        self.error_signal_last_save_time = time.time()
-        if time_passed > 5:  # 5 seconds (or more) passed since last write?
+        now = round(time.time())
+        time_passed = now - self.error_signal_last_save_time
+
+        if time_passed > 2:  # 2 seconds (or more) passed since last write?
+            self.error_signal_last_save_time = now
             try:
                 # Save the current error in a file - for the Control code to take
                 np.save(self.locking_error_path, errorSignal)
                 # Save the current error in a dated file
-                file_name = self.prepare_file_name('Locking_PID_Error', 'locking_err', 'txt')
-                with open(file_name, 'w') as f:
-                    f.write(errorSignal)
+                file_name = self.prepare_file_name('Locking_PID_Error', 'locking_err_log', 'txt', True)
+                with open(file_name, 'a') as f:
+                    f.write("%s: %s\n" % (time.strftime("%H:%M:%S"), str(errorSignal)))
             except Exception as e:
                 print(e)
 
