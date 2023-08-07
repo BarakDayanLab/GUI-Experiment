@@ -58,7 +58,7 @@ class Cavity_lock_GUI(Scope_GUI):
         self.error_signal_last_save_time = time.time()
         self.prev_time_scale = 1.0
         self.DIVIDER = 1  # Constant for normalizing the PID variables. In some cases, we saw that 1000 works better
-        self.HMP4040_AVAILABLE = False
+        self.HMP4040_AVAILABLE = True
 
         self.halogen_voltage_file_path = '%s\\halogen_voltage.txt' % os.getcwd()
 
