@@ -82,9 +82,15 @@ class PlotWindow(QDialog):
                     if self.arrows[i] is None:
                         self.arrows[i] = self.annotateWithArrow(pk[0], pk[1])   # create new arrow
                     self.arrows[i].xy = (pk[0],pk[1])                           # update arrow location
-            if 'text_box' in kwargs and kwargs['text_box'] is not None:
-                if self.textBox is None: self.addTextBox(textstr=kwargs['text_box'])
-                self.textBox.set_text(str(kwargs['text_box']))
+            if 'text_box' in kwargs:
+                # Ensure we have text box in UI
+                if self.textBox is None:
+                    self.addTextBox(textstr=kwargs['text_box'])
+                # Set the text (or empty string if None)
+                if kwargs['text_box'] is not None:
+                    self.textBox.set_text(str(kwargs['text_box']))
+                else:
+                    self.textBox.set_text("")
             #self.canvas.draw()
             #self.canvas.flush_events()
             return
@@ -111,7 +117,7 @@ class PlotWindow(QDialog):
             self.lines[i] = line1
 
         # ------ legend ----------------
-        if 'legend' in kwargs and kwargs['legend'] or 'legend' not in kwargs: # by default, legend on
+        if 'legend' in kwargs and kwargs['legend'] or 'legend' not in kwargs:  # by default, legend on
             for i, ax in enumerate(self.axes):
                 self.axes[i].legend(loc = 'upper right') # defualt
                 if 'legend_loc' in kwargs: self.axes[i].legend(loc = kwargs['legend_loc'])
@@ -121,7 +127,7 @@ class PlotWindow(QDialog):
             sec_ax = self.axes[0].secondary_xaxis('top',xlabel=kwargs['secondary_x_axis_label'], functions = kwargs['secondary_x_axis_func'])
 
         # ------ grid ----------------
-        if 'grid' in kwargs and kwargs['grid'] or 'grid' not in kwargs: # by default, grid on
+        if 'grid' in kwargs and kwargs['grid'] or 'grid' not in kwargs:  # by default, grid on
             if 'x_ticks' in kwargs:
                 self.axes[0].set_xticks(kwargs['x_ticks'])
             if 'y_ticks' in kwargs:
@@ -147,7 +153,7 @@ class PlotWindow(QDialog):
             self.axes[0].set_ylabel('Voltage [V]')
             self.axes[0].set_xlabel('Time [ms]')
             if 'aux_plotting_func' in kwargs:
-                kwargs['aux_plotting_func'](redraw=redraw, **kwargs) # This is a general way of calling this function
+                kwargs['aux_plotting_func'](redraw=redraw, **kwargs)  # This is a general way of calling this function
             plt.tight_layout()
         except Exception as e:
             pass

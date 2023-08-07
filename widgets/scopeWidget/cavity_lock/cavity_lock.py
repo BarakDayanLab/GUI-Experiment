@@ -13,6 +13,8 @@ from PyQt5.QtCore import QThreadPool
 from functions.HMP4040Control import HMP4040Visa
 import time
 import traceback
+from services.lorentzian_fit.lorentzian_fit import LorentzianFit
+
 
 STATE_OFF = 0
 STATE_ON = 1
@@ -521,16 +523,26 @@ class Cavity_lock_GUI(Scope_GUI):
             self.updateSelectedPeak([chn1_peaksLocation, chn2_peaksLocation])
 
         # ----------- text box -----------
-        # to be printed in lower right corner
+        # to be printed in upper right corner
         text_box_string = None
 
+        # Attempt to fit Cavity Lorentzian and deduce width in Real-Time
         if self.outputsFrame.checkBox_fitLorentzian.isChecked():
-            popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], params_0=None)
-            # popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
-            #                                    peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
-            params_text = self.multipleLorentziansParamsToText(popt)
-            # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
-            text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
+            lf = LorentzianFit()
+            lf.set_data(Avg_data[1], True)
+            fit_data = lf.fit(500000, 0.002)
+            if fit_data is None:
+                text_box_string = 'Fit: <none>'
+            else:
+                text_box_string = "Fit: %d data-points" % len(fit_data)
+
+        # if self.outputsFrame.checkBox_fitLorentzian.isChecked():
+        #     popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], params_0=None)
+        #     # popt = self.fitMultipleLorentzians(xData=x_axis, yData=Avg_data[0], peaks_indices=Rb_peaks,
+        #     #                                    peaks_init_width=(Rb_properties['widths'] * indx_to_time))  # just an attempt. this runs very slowly.
+        #     params_text = self.multipleLorentziansParamsToText(popt)
+        #     # text_box_string = 'Calibration: \n' + str(self.indx_to_freq) +'\n'
+        #     text_box_string += 'Found %d Lorentzians: \n'%len(Rb_peaks) + params_text
 
         # --------- plot ---------
         # Prepare data for display:
