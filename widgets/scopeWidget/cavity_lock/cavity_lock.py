@@ -191,18 +191,21 @@ class Cavity_lock_GUI(Scope_GUI):
 
         return full_path
 
-    def save_cavity_snapshot(self, data):
+    def save_cavity_and_rb_lines_snapshot(self, data):
         time_passed = time.time() - self.cavity_spectrum_last_save_time
         if time_passed < 60*5:  # Every 5 minutes
             return
         self.cavity_spectrum_last_save_time = time.time()
-        file_name_1 = self.prepare_file_name('Cavity_Spectrum', 'spectrum', 'npy')
-        file_name_2 = self.prepare_file_name('Cavity_Spectrum', 'figure', 'png')
+        file_name__cavity = self.prepare_file_name('Cavity_Spectrum', 'cavity_spectrum', 'npy')
+        file_name__rb_lines = self.prepare_file_name('Cavity_Spectrum', 'rb_lines_spectrum', 'npy')
+        file_name__img = self.prepare_file_name('Cavity_Spectrum', 'figure', 'png')
 
         try:
-            if len(data) > 0:
-                np.save(file_name_1, data)
-            self.widgetPlot.savePlot(file_name_2)
+            if len(data[0]) > 0:
+                np.save(file_name__rb_lines, data[0])
+            if len(data[1]) > 0:
+                np.save(file_name__cavity, data[1])
+            self.widgetPlot.savePlot(file_name__img)
         except Exception as ex:
             tb = traceback.format_exc()
             print(tb)
@@ -551,8 +554,8 @@ class Cavity_lock_GUI(Scope_GUI):
                                    aux_plotting_func = self.widgetPlot.plot_Scatter, scatter_y_data = np.concatenate([Avg_data[0][Rb_peaks], Avg_data[1][Cavity_peak]]),
                                    scatter_x_data = np.concatenate([x_axis[Rb_peaks], x_axis[Cavity_peak]]),mark_peak = self.selectedPeaksXY, text_box = text_box_string)
 
-        # --------- Save Cavity Spectrum & Figure ----------
-        self.save_cavity_snapshot(Avg_data[1])
+        # --------- Save Cavity Spectrum & Rb Lines & Figure (img) ----------
+        self.save_cavity_and_rb_lines_snapshot(Avg_data)
 
         # --------- Lock -----------
         if self.lockOn and self.selectedPeaksXY and len(self.selectedPeaksXY) == 2: # if, and only if, we have selected two peaks to lock on

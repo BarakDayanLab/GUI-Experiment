@@ -212,6 +212,11 @@ class LorentzianFit:
 
         return y_fit_data
 
+    # Find RB lines peaks
+    def analyze_rb_lines(self, file):
+
+        pass
+
     def plot_fit(self, fev, title, prominence, hold):
 
         plt.figure(title)
@@ -397,11 +402,20 @@ class LorentzianFit:
 
         return
 
+    @staticmethod
+    def run_rb_lines_test(file):
+        lf = LorentzianFit()
+        lf.load_data(data_file=file)
+        res = lf.analyze_rb_lines()
+        pass
 
 if __name__ == "__main__":
 
     # Test for plotting the Lorentzian function
     LorentzianFit.run_tests()
+
+    LorentzianFit.run_rb_lines_test(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230719\RB_LINES_20230718-102646_spectrum.npy')
+
     #LorentzianFit.run_specific_test(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230719\20230719-054916_spectrum.npy')
     #LorentzianFit.run_specific_test(r'C:\Users\drorg\PycharmProjects\GUI-Experiment\services\lorentzian_fit\tests\ALL_PEAKS_20230719-190922_figure.npy')
 
