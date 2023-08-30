@@ -49,6 +49,7 @@ class VacuumLogger:
         while True:
             torr_value = self._get_vacuum_value()
             self._write_line_to_sheet(torr_value)
+            print(f'Logged {torr_value}')
             time.sleep(60*self.interval)  # Sleep for <interval> minutes
             #time.sleep(5)  # Sleep for 5 seconds
 
