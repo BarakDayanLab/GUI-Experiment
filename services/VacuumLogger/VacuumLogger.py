@@ -2,27 +2,32 @@ from functions.DLinkDCS932L.Webcam import Webcam
 from services.GoogleSheet.GoogleSheet import GoogleSheet
 from datetime import datetime
 import time
+import re
 
 
 class VacuumLogger:
 
-    def __init__(self, minutes_interval):
+    def __init__(self, minutes_interval, debug=False):
         # Initialize webcam
         self.webcam = Webcam('132.77.54.139',
                              'admin',
                              '123456',
                              r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-                             x=170, y=80, h=120, w=360)
+                             x=180, y=60, h=110, w=360)
 
         # Initialize connection to Google Sheet
         self.gs = GoogleSheet()
+        self.debug = debug
 
         self.interval = minutes_interval
         pass
 
     def _get_vacuum_value(self):
-        text_rgb = self.webcam.get_text('rgb', False)
-        text_grey = self.webcam.get_text('grey', False)
+        text_rgb = self.webcam.get_text('rgb', self.debug)
+        text_grey = self.webcam.get_text('grey', self.debug)
+
+        # text_rgb = text_rgb.replace('($', '5')
+        # text_rgb = text_rgb.replace('$', '5')
 
         torr_value = text_rgb
         if text_rgb != text_grey:
@@ -52,17 +57,21 @@ class VacuumLogger:
 
         while True:
             torr_value = self._get_vacuum_value()
-            self._write_line_to_sheet(torr_value)
-            print(f'Logged {torr_value}')
-            time.sleep(60*self.interval)  # Sleep for <interval> minutes
-            #time.sleep(5)  # Sleep for 5 seconds
 
+            # Using regex()
+            if re.match('^[0-9E.-]*$', torr_value):
+                self._write_line_to_sheet(torr_value)
+                print(f'Logged {torr_value}')
+            else:
+                print(f'Got invalid readout: {torr_value}. Skipping.')
+
+            time.sleep(self.interval)  # Sleep for <interval> seconds
         pass
 
 
 if __name__ == "__main__":
 
-    logger = VacuumLogger(minutes_interval=5)
+    logger = VacuumLogger(minutes_interval=30, debug=False)  # Eery 30 seconds
     logger.mainloop()
 
     # Should never reach here...

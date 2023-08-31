@@ -60,7 +60,7 @@ class Webcam:
         rgb = self.get_image()
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         rgb = cv2.resize(rgb, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
-        text = pytesseract.image_to_string(rgb, config=f'--psm {psm} tessedit_char_whitelist=0123456789-.')  # config="outputbase digits"
+        text = pytesseract.image_to_string(rgb, config=f'--psm {psm} vacuum')  # config="outputbase digits"
 
         if debug:
             cv2.imshow("Image", rgb)
@@ -73,7 +73,7 @@ class Webcam:
         gry = cv2.cvtColor(gry, cv2.COLOR_BGR2GRAY)
         gry = cv2.resize(gry, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         gry = cv2.bitwise_not(gry)
-        text = pytesseract.image_to_string(gry, config=f'--psm {psm} -c tessedit_char_whitelist=0123456789-')
+        text = pytesseract.image_to_string(gry, config=f'--psm {psm} vacuum')
 
         if debug:
             cv2.imshow("Image", gry)
