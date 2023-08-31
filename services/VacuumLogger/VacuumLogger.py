@@ -8,7 +8,11 @@ class VacuumLogger:
 
     def __init__(self, minutes_interval):
         # Initialize webcam
-        self.webcam = Webcam('132.77.54.139', 'admin', '123456', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
+        self.webcam = Webcam('132.77.54.139',
+                             'admin',
+                             '123456',
+                             r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                             x=170, y=80, h=120, w=360)
 
         # Initialize connection to Google Sheet
         self.gs = GoogleSheet()
@@ -17,12 +21,12 @@ class VacuumLogger:
         pass
 
     def _get_vacuum_value(self):
-        text_rgb = self.webcam.get_text('rgb')
-        text_grey = self.webcam.get_text('grey')
+        text_rgb = self.webcam.get_text('rgb', False)
+        text_grey = self.webcam.get_text('grey', False)
 
         torr_value = text_rgb
         if text_rgb != text_grey:
-            torr_value = text_grey
+            torr_value = text_rgb
 
         if len(torr_value) < 6:
             return 'na'
