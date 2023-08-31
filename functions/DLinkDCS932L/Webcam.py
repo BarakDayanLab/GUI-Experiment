@@ -80,3 +80,24 @@ class Webcam:
             cv2.waitKey(0)
 
         return text
+
+    @staticmethod
+    def test():
+        import cv2
+        webcam = cv2.VideoCapture(2)  # Number which capture webcam in my machine
+        # try either VideoCapture(0) or (1) based on your camera availability
+        # in my desktop it works with (1)
+        check, frame = webcam.read()
+
+        cv2.imshow("Image", frame)
+        cv2.waitKey(0)
+
+        #cv2.imwrite(filename=r'<Your Directory>\saved_img.jpg', img=frame)
+
+        webcam.release()
+        pass
+
+if __name__ == "__main__":
+
+    Webcam.test()
+    pass
