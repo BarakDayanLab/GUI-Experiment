@@ -6,6 +6,9 @@ import pytesseract
 import argparse
 import cv2
 import numpy as np
+import keyboard
+import time
+
 
 # -----------------------------------------------------------
 # Important Notes:
@@ -80,6 +83,29 @@ class Webcam:
             cv2.waitKey(0)
 
         return text
+
+    def calibrate(self):
+        import cv2
+
+        while True:
+
+            if keyboard.is_pressed('q'):  # if key 'q' is pressed
+                print('You Pressed A Key!')
+                break  # finishing the loop
+
+            frame = self.get_image()
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC)
+
+            cv2.imshow("Image", frame)
+
+            time.sleep(1)
+
+            cv2.destroyWindow("Image")
+
+            pass
+
+        pass
 
     @staticmethod
     def test():
