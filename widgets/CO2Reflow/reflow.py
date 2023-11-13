@@ -42,6 +42,7 @@ class Keithley3390Controller():
     __instID_OLD = 'Keithley Instruments Inc.,3390,1194979,1.02-0B1-03-02-02'
 
     def __init__(self, host='USB0::0x05E6::0x3390::1421680::INSTR'):
+        self.connected = False
         try:
             self.rm = visa.ResourceManager()
             self.AWG = self.rm.open_resource(host)
@@ -53,6 +54,7 @@ class Keithley3390Controller():
             self.AWG.write('VOLTage 3')  # Set output 3 v peak to peak
             self.AWG.write('OUTPut ON')  # Set output on
             self.recallStateFromMemory()  # recall saved settings
+            self.connected = True
         except Exception as err:
             printError(f'Failed to connect to Keithley device: {err}')
 
@@ -65,10 +67,12 @@ class Keithley3390Controller():
 
 class Picomotor8742Controller():
     def __init__(self, ip='169.254.13.33', port=23):
+        self.connected = False
         try:
             self.controller = instruments.newport.PicoMotorController8742.open_tcpip(ip, port)
             self.axes = self.controller.axis
             self.step_to_um = 0.03  # conversion of one step to micro-meter (10e6), measured by Natan at 13/4/2022; further calibration may be in order
+            self.connected = True
         except Exception as err:
             printError(f'Unable to connect to picomotors: {err}')
 
@@ -113,6 +117,11 @@ class ReflowController(QWidget):
         self.motors = Picomotor8742Controller()
         self.screenShotRegion = (270, 165, 1420, 805)  # This could be selected and changed - the frame of the screen from which image is take
         self.connectButtons()
+
+        # Set form title based on connectivity
+        awg_status = 'connected' if self.AWG.connected else 'disconnected'
+        picomotors_status = 'connected' if self.motors.connected else 'disconnected'
+        self.setWindowTitle(f'Reflow Control  (AWG: {awg_status} | Picomotors: {picomotors_status})')
 
     def connectButtons(self):
         """
