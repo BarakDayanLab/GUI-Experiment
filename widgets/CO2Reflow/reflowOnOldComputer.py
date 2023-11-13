@@ -1,14 +1,12 @@
 import pyautogui
 import pyvisa as visa
-#from playsound import playsound
+from playsound import playsound
 from simple_pid import PID
 import numpy as np
 from matplotlib import pyplot as plt
 import instruments  # Note: install GitHub latest version using the command (in Windows console, must have Git installed): pip install git+https://www.github.com/instrumentkit/InstrumentKit.git#egg=instrumentkit
 import cv2
-import time
-import os
-import sys
+import time, os
 
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QApplication, QMessageBox, QShortcut, QListWidgetItem
@@ -42,19 +40,16 @@ class Keithley3390Controller():
     __instID_OLD = 'Keithley Instruments Inc.,3390,1194979,1.02-0B1-03-02-02'
 
     def __init__(self, host='USB0::0x05E6::0x3390::1421680::INSTR'):
-        try:
-            self.rm = visa.ResourceManager()
-            self.AWG = self.rm.open_resource(host)
-            ID = self.AWG.query("*IDN?").strip()
-            if ID != self.__instID:
-                printError('Could not connect to AWG! ID: %s' % ID)
-            else:
-                printGreen('Connected to AWG successfully!')
-            self.AWG.write('VOLTage 3')  # Set output 3 v peak to peak
-            self.AWG.write('OUTPut ON')  # Set output on
-            self.recallStateFromMemory()  # recall saved settings
-        except Exception as err:
-            printError(f'Failed to connect to Keithley device: {err}')
+        self.rm = visa.ResourceManager()
+        self.AWG = self.rm.open_resource(host)
+        ID = self.AWG.query("*IDN?").strip()
+        if ID != self.__instID:
+            printError('Could not connect to AWG! ID: %s' % ID)
+        else:
+            printGreen('Connected to AWG successfully!')
+        self.AWG.write('VOLTage 3')  # Set output 3 v peak to peak
+        self.AWG.write('OUTPut ON')  # Set output on
+        self.recallStateFromMemory()  # recall saved settings
 
     def trigger(self):
         self.AWG.write('*TRG')
@@ -65,15 +60,14 @@ class Keithley3390Controller():
 
 class Picomotor8742Controller():
     def __init__(self, ip='169.254.13.33', port=23):
-        try:
-            self.controller = instruments.newport.PicoMotorController8742.open_tcpip(ip, port)
-            self.axes = self.controller.axis
-            self.step_to_um = 0.03  # conversion of one step to micro-meter (10e6), measured by Natan at 13/4/2022; further calibration may be in order
-        except Exception as err:
-            printError(f'Unable to connect to picomotors: {err}')
+        self.controller = instruments.newport.PicoMotorController8742.open_tcpip(ip, port)
+        self.axes = self.controller.axis
+        self.step_to_um = 0.03  # conversion of one step to micro-meter (10e6), measured by Natan at 13/4/2022; further calibration may be n order
 
     # -- Relative movement ---
-    def xMoveStep(self, step): self.axes[0].move_relative = step
+    def xMoveStep(self, step):
+        self.axes[0].move_relative = step
+        print('Moving in x', step)
 
     def yMoveStep(self, step): self.axes[1].move_relative = step
 
@@ -107,54 +101,29 @@ class ReflowController(QWidget):
         ui = os.path.join(os.path.dirname(__file__), "reflowWidget.ui") if ui is None else ui
         uic.loadUi(ui, self)
 
-        #self.widgetPlot = dataplot.PlotWindow()
-        self.__imagesPath = r'C:\\Users\\gabrielg.WISMAIN\\Desktop\\CO2 alignment - Python\\photos\\04142022\\N7 - chip'
+        self.__imagesPath = r'C:\\Users\\gabrielg.WISMAIN\\Desktop\\CO2 alignment - Python\\photos\\04252022\\P3 - chip'
         self.AWG = Keithley3390Controller()
         self.motors = Picomotor8742Controller()
-        self.screenShotRegion = (270, 165, 1420, 805)  # This could be selected and changed - the frame of the screen from which image is take
+        self.screenShotRegion = (
+        270, 165, 1420, 805)  # This could be selected and changed - the frame of the screen from which image is take
         self.connectButtons()
 
     def connectButtons(self):
-        """
-        Connect the buttons "click" event to their respective functions
-        """
-        # Move arrows - single step
         self.toolButton_upArrow.clicked.connect(lambda: self.moveToNextToroid(
             moveDown=False) if self.checkBox_findNextToroid.checkState() else self.motors.yMoveStep(
-            self._movementIncrement("single")))
+            self.spinBox_nSteps.value()))
         self.toolButton_downArrow.clicked.connect(lambda: self.moveToNextToroid(
             moveDown=True) if self.checkBox_findNextToroid.checkState() else self.motors.yMoveStep(
-            -self._movementIncrement("single")))
-        self.toolButton_rightArrow.clicked.connect(lambda: self.motors.xMoveStep(-self._movementIncrement("single")))
-        self.toolButton_leftArrow.clicked.connect(lambda: self.motors.xMoveStep(self._movementIncrement("single")))
-
-        # Move arrows - continuous step
-        self.pushButton_upUpArrow.clicked.connect(lambda: self.moveToNextToroid(
-            moveDown=False) if self.checkBox_findNextToroid.checkState() else self.motors.yMoveStep(
-            self._movementIncrement("continuous")))
-        self.pushButton_downDownArrow.clicked.connect(lambda: self.moveToNextToroid(
-            moveDown=True) if self.checkBox_findNextToroid.checkState() else self.motors.yMoveStep(
-            -self._movementIncrement("continuous")))
-        self.pushButton_rightRightArrow.clicked.connect(lambda: self.motors.xMoveStep(-self._movementIncrement("continuous")))
-        self.pushButton_leftLeftArrow.clicked.connect(lambda: self.motors.xMoveStep(self._movementIncrement("continuous")))
-
-        # Goto Target button
+            -self.spinBox_nSteps.value()))
+        self.toolButton_rightArrow.clicked.connect(lambda: self.motors.xMoveStep(-self.spinBox_nSteps.value()))
+        self.toolButton_leftArrow.clicked.connect(lambda: self.motors.xMoveStep(self.spinBox_nSteps.value()))
         self.toolButton_goToTarget.clicked.connect(lambda: self.detectAndMoveCircleToTarget(
             target=(self.spinBox_targetX.value(), self.spinBox_targetY.value())))
-
-        # Reflow entire row
         self.pushButton_reflowRow.clicked.connect(
             lambda: self.reflowEntireRow(target=(self.spinBox_targetX.value(), self.spinBox_targetY.value())))
-
         self.pushButton_showFit.clicked.connect(lambda: self.detectCircles(showDetectedCircles=True))
         self.toolButton_triggerLaser.clicked.connect(self.triggerLaser)
         self.lineEdit_filesPath.setText(r'C:\\Users\\gabrielg.WISMAIN\\Desktop\\CO2 alignment - Python\\photos\\')
-
-    def _movementIncrement(self, mode):
-        """
-        Return the increment based on whether mode is "single" or "continuous" - taken from a different spinbox in UI
-        """
-        return self.spinBox_nSteps.value() if mode == 'single' else self.spinBox_cSteps.value()
 
     def grabImage(self):
         return (pyautogui.screenshot(region=self.screenShotRegion))
@@ -219,12 +188,7 @@ class ReflowController(QWidget):
         iterations = 0
         while (iterations < 100):
             circles, img = self.detectCircles(showDetectedCircles=showDetectedCircles)
-            if showDetectedCircles:
-                print(circles)
-                plt.imshow(img)
-                plt.show()
-                time.sleep(2)
-            closestCircle = None            
+            closestCircle = None
             if circles is None or len(circles) == 0:
                 printError('Could not detect circle! Try moving toroid to center manually, then hit ENTER.')
                 input()
@@ -286,13 +250,10 @@ class ReflowController(QWidget):
 
 
 if __name__ == "__main__":
-    app = QApplication([])  # Create the application
+    app = QApplication([])
     window = ReflowController()
     window.show()
-
-    # app.exec_() starts the even driven background processing of QT, only when app closes, this returns value so sys.exit() exits
     sys.exit(app.exec_())
-    pass
 
 # reflowController.detectAndMoveCircleToTarget(target = (646, 308), showDetectedCircles = False)
 ##circles, img = reflowController.detectCircles(img = cv2.imread('laserCenteredOnToroidReference.PNG'))
