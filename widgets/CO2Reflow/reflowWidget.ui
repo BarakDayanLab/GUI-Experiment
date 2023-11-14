@@ -78,7 +78,7 @@
         </property>
         <property name="icon">
          <iconset>
-          <activeon>bullsEyeIcon.png</activeon>
+          <activeon>icons/bullsEyeIcon.png</activeon>
          </iconset>
         </property>
         <property name="iconSize">
@@ -162,7 +162,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <activeon>laserIcon.png</activeon>
+            <activeon>icons/laserIcon.png</activeon>
            </iconset>
           </property>
           <property name="iconSize">
@@ -244,7 +244,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normalon>../../../../Downloads/Arrows/right_arrow.png</normalon>
+            <normalon>icons/right_arrow.png</normalon>
            </iconset>
           </property>
           <property name="iconSize">
@@ -277,7 +277,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normalon>../../../../Downloads/Arrows/up_arrow.png</normalon>
+            <normalon>icons/up_arrow.png</normalon>
            </iconset>
           </property>
           <property name="iconSize">
@@ -301,7 +301,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normalon>../../../../Downloads/Arrows/left_arrow.png</normalon>
+            <normalon>icons/left_arrow.png</normalon>
            </iconset>
           </property>
           <property name="iconSize">
@@ -325,7 +325,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normalon>../../../../Downloads/Arrows/down_arrow.png</normalon>
+            <normalon>icons/down_arrow.png</normalon>
            </iconset>
           </property>
           <property name="iconSize">
