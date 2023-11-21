@@ -84,11 +84,14 @@ class VacuumLogger:
 
 if __name__ == "__main__":
 
-    logger = VacuumLogger(seconds_interval=2 * 60, debug=True)  # Every 60 seconds
+    calibrate = True
 
-    #logger.webcam.calibrate()
+    logger = VacuumLogger(seconds_interval=2 * 60, debug=False)  # Every 60 seconds
 
-    logger.mainloop()
+    if calibrate:
+        logger.webcam.calibrate()
+    else:
+        logger.mainloop()
 
     # Should never reach here...
     pass

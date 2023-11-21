@@ -16,6 +16,17 @@ class LorentzianFit:
     def __init__(self):
         pass
 
+    def load_rb_lines_data(self, data_file, inverse=False):
+        # Load data from numpy file
+        try:
+            self.rb_data_points = np.load(data_file)
+        except Exception as err:
+            print('Failed to load data from %s (%s)' % (data_file, err))
+            raise err
+        if inverse:
+            self.rb_data_points = -1 * self.rb_data_points
+        pass
+
     def load_data(self, data_file, inverse=False):
         # Load data from numpy file
         try:
@@ -117,53 +128,6 @@ class LorentzianFit:
 
         return frame, pattern
 
-    # It is possible we will have a plateau on one of the peaks - so we get 2 high-peaks
-    # We therefore return the min/max of the peaks array to ensure only a pair, but maintain there order
-    # in the original array (so min may come before max or the other way around)
-    def deduce_peaks_DEP(self, troughs, peaks):
-
-        # We have only the cavity in frame
-        if len(troughs) >= 1 and len(peaks) == 0:
-            return [0, len(self.data_points)-1]
-
-        if len(peaks) == 1:
-            return [0, peaks[0]]
-
-        # No peaks detected at all
-        if len(peaks) == 0:
-            return None
-
-        new_peaks = []
-        min_peak_val = min(peaks)
-        max_peak_val = max(peaks)
-        for i in range(0, len(peaks)):
-            if peaks[i] == min_peak_val or peaks[i] == max_peak_val:
-                new_peaks.append(peaks[i])
-        return new_peaks
-
-    def plot_sample(self):
-
-        x_data = np.arange(0.0, 10.0, 1.0)
-        y_data = np.zeros(10)
-        for i in range(0, 10):
-            y_data[i] = self.model(x_data[i], 20, 5)
-
-        fev = 50  # 50000
-        popt, pcov = optimize.curve_fit(f=self.model, xdata=x_data, ydata=y_data, maxfev=fev)
-        fit_a = popt[0]
-        fit_b = popt[1]
-
-        y_fit_data = self.model(x_data, fit_a, fit_b)
-
-        plt.plot(x_data, y_data, '*', label='data')
-        plt.plot(x_data, y_fit_data, '-', label='fit')
-        plt.legend()
-
-        plt.show(block=True)
-
-        return
-
-
     def fit(self, fev, prominence):
 
         x_data = np.arange(0.0, 1.0, 1/1024)
@@ -212,8 +176,71 @@ class LorentzianFit:
 
         return y_fit_data
 
+    def deduce_rb_lines_peaks(self, peaks):
+        if len(peaks) < 4:
+            return peaks
+
+        # Find the cut-off point
+        peaks_y = list(self.rb_data_points[peaks])
+        peaks_y.sort(reverse=True)
+        cutoff = peaks_y[2]
+
+        # Return those peaks that are higher or equal to the cutoff point
+        the_three = list(filter(lambda x: self.rb_data_points[x] >= cutoff, peaks))
+
+        return the_three
+
     # Find RB lines peaks
-    def analyze_rb_lines(self, file):
+    def analyze_rb_lines(self, title, hold=False):
+
+        prominence = 0.0024
+
+        plt.figure(title)
+
+        # Set X/Y-axis values
+        x_data = np.arange(0.0, 1.0, 1/1024)
+        y_data = self.rb_data_points
+
+        # Find peaks on this one:
+        #peaks, p_properties = find_peaks(y_data)
+        peaks, p_properties = find_peaks(y_data, prominence=prominence)
+
+        peaks = self.deduce_rb_lines_peaks(peaks)
+
+        # Crop data - from peak to peak
+        delta = 0
+        x_framed_data = x_data[peaks[0]+delta:peaks[1]-delta]
+        y_framed_data = y_data[peaks[0]+delta:peaks[1]-delta]
+
+        plt.title(title)
+
+        # Plot the signal line
+        plt.plot(x_data, y_data, '-', color='blue', label='data')
+
+        # Plot the prominence line
+        y_prom = np.zeros_like(x_data)+prominence
+        plt.plot(x_data, y_prom, "--", color="gray")
+
+        # Plot the peaks
+        plt.plot(x_data[peaks], y_data[peaks], "x", color="red")
+
+        # Figure Cosmetics...
+        axis = plt.gca()
+        axis.spines['right'].set_visible(False)
+        axis.spines['top'].set_visible(False)
+
+        # Name the x/y-axis
+        plt.xlabel('Time [ms]')
+        plt.ylabel('Voltage [V]')
+
+        plt.xticks(np.arange(0, 1, step=0.1))
+        plt.yticks(np.arange(-0.15, 0.15, step=0.03))
+
+        axis.legend()
+
+        self.maximize_figure()
+
+        plt.show(block=hold)
 
         pass
 
@@ -285,7 +312,6 @@ class LorentzianFit:
 
         # Plot the prominence line
         y_prom = np.zeros_like(x_data)+prominence
-        #y_prom = y_prom + -0.04 + 0.04 + 0.1 * x_data
         plt.plot(x_data, y_prom, "--", color="gray")
 
         # Plot the peaks
@@ -377,6 +403,9 @@ class LorentzianFit:
 
     @staticmethod
     def run_tests():
+        """
+        Runs various spectrum cases we have - attempts to find the fit
+        """
 
         FEV = 500000
 
@@ -405,21 +434,16 @@ class LorentzianFit:
     @staticmethod
     def run_rb_lines_test(file):
         lf = LorentzianFit()
-        lf.load_data(data_file=file)
-        res = lf.analyze_rb_lines()
+        lf.load_rb_lines_data(file, False)
+        res = lf.analyze_rb_lines('Rb Lines Analysis', True)
         pass
 
 if __name__ == "__main__":
 
-    # Test for plotting the Lorentzian function
-    LorentzianFit.run_tests()
+    # Test for plotting the Lorentzian function on predefined spectrum files we have
+    #LorentzianFit.run_tests()
 
-    LorentzianFit.run_rb_lines_test(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230719\RB_LINES_20230718-102646_spectrum.npy')
-
-    #LorentzianFit.run_specific_test(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230719\20230719-054916_spectrum.npy')
-    #LorentzianFit.run_specific_test(r'C:\Users\drorg\PycharmProjects\GUI-Experiment\services\lorentzian_fit\tests\ALL_PEAKS_20230719-190922_figure.npy')
-
-    #LorentzianFit.run_on_folder(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230718', continue_from=None)
+    LorentzianFit.run_rb_lines_test(r'U:\Lab_2023\Experiment_results\QRAM\Cavity_Spectrum\20230808\20230808-150209_rb_lines_spectrum.npy')
 
     #LorentzianFit.plot_lorentzian(True)
     pass
