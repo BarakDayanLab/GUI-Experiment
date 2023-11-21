@@ -141,7 +141,8 @@ class Webcam:
             self.frame = self.org_frame[self.y:self.y + self.h, self.x:self.x + self.w]
             self.im.set_data(self.frame)
             self.fig.canvas.draw()
-            print(f'x={self.x}, y={self.y}, h={self.h}, w={self.w}')
+            coords_str = f'x={self.x}, y={self.y}, h={self.h}, w={self.w}'
+            plt.title(coords_str)
 
     def calibrate(self):
         """
@@ -153,12 +154,15 @@ class Webcam:
 
         self.frame = self.org_frame[self.y:self.y + self.h, self.x:self.x + self.w]
 
-        plt.title("Position: Up-arrow Down-arrow  Width: [ ]  Height: a z")
-        #plt.xlabel("X pixel scaling")
-        #plt.ylabel("Y pixels scaling")
+        # plt.title & plt.<anything that does plotting> creates a plot - creates figure by default
 
-        self.fig, ax = plt.subplots()
+        usage_str = 'Usage: Up-arrow Down-arrow  Width: [ ]  Height: a z'
+        coords_str = f'x={self.x}, y={self.y}, h={self.h}, w={self.w}'
+
+        self.fig = plt.figure("Camera view calibration")  # Creates a figure and subplot
         self.fig.canvas.mpl_connect('key_press_event', self.on_press)
+        plt.title(coords_str)
+        self.fig.suptitle(usage_str)
 
         self.im = plt.imshow(self.frame)
         plt.show()

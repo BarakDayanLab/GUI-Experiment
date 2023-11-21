@@ -84,7 +84,7 @@ class VacuumLogger:
 
 if __name__ == "__main__":
 
-    calibrate = False
+    calibrate = True
 
     logger = VacuumLogger(seconds_interval=2 * 60, debug=False)  # Every 60 seconds
 
