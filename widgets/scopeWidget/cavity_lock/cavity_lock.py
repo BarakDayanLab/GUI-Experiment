@@ -588,18 +588,18 @@ class Cavity_lock_GUI(Scope_GUI):
         # Save error signal for threshold in sprint experiments
         now = round(time.time())
         time_passed = now - self.error_signal_last_save_time
-
+        # print('%.3f' %time_passed)
         if time_passed > 2:  # 2 seconds (or more) passed since last write?
             self.error_signal_last_save_time = now
-            try:
-                # Save the current error in a file - for the Control code to take
-                np.save(self.locking_error_path, errorSignal)
-                # Save the current error in a dated file
-                file_name = self.prepare_file_name('Locking_PID_Error', 'locking_err_log', 'txt', True)
-                with open(file_name, 'a') as f:
-                    f.write("%s: %s\n" % (time.strftime("%H:%M:%S"), str(errorSignal)))
-            except Exception as e:
-                print(e)
+            # try:
+            # Save the current error in a file - for the Control code to take
+            np.save(self.locking_error_path, errorSignal)
+            # Save the current error in a dated file
+            file_name = self.prepare_file_name('Locking_PID_Error', 'locking_err_log', 'txt', True)
+            with open(file_name, 'a') as f:
+                f.write("%s: %s\n" % (time.strftime("%H:%M:%S"), str(errorSignal)))
+            # except Exception as e:
+            #     print(e)
 
         # Error signal times 1e-3 makes sense -> mili-amps. also good for de-facto units
         output = self.pid(errorSignal)
