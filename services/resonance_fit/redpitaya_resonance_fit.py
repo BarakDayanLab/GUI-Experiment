@@ -1,6 +1,8 @@
 from services.resonance_fit.resonance_fit import ResonanceFit
 from functions.RedPitayaWebsocket import Redpitaya
 import numpy as np
+import time
+import matplotlib.pyplot as plt
 
 
 class RedPitayaResonanceFit(ResonanceFit):
@@ -12,6 +14,9 @@ class RedPitayaResonanceFit(ResonanceFit):
                                     dialogue_print_callback=self.dialogue_print_callback,
                                     config=self.config)
         self.red_pitaya.run()
+
+        while True:
+            time.sleep(1)
 
     def got_data_callback(self, data, parameters):
         if self.pause:
@@ -36,8 +41,8 @@ class RedPitayaResonanceFit(ResonanceFit):
             self.graphics.plot_fit()
             self.graphics.activate_button()
 
-    def dialogue_print_callback(self, text):
-        pass
+    def dialogue_print_callback(self, text, color=""):
+        print(text)
 
 
 if __name__ == '__main__':
