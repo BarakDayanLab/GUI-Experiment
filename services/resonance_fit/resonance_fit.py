@@ -39,8 +39,6 @@ class ResonanceFit:
         self.distance = 100
         self.width = 1000
 
-        self.graphics = ResonanceFitGraphics(self, show_buttons=show_buttons)
-
     @property
     def lock_error(self):
         return self.cavity.x_0 - self.x_axis[self.rubidium_lines.peaks_idx[self.lock_idx]] + 80
@@ -213,7 +211,7 @@ class ResonanceFitGraphics:
     # ------------------ PLOT FIT ------------------ #
     def initialize_figure(self):
         plt.ion()
-        self.fig = plt.figure(figsize=(16, 9), constrained_layout=True)
+        self.fig = plt.figure(figsize=(16, 9))  # add constrained_layout=True
         if self.show_buttons:
             self.plot_subfigure, self.buttons_subfigure = self.fig.subfigures(2, 1, height_ratios=[94, 6])
         else:
@@ -237,8 +235,8 @@ class ResonanceFitGraphics:
             self.plot_subfigure.axes[2].set_title(plot_3rd_axis[0])
             self.plot_subfigure.axes[2].set_ylabel(plot_3rd_axis[1])
 
-    def buttons_axis(self):
-        self.buttons_subfigure.subplots(1, 2)
+    def buttons_axis(self, size=(1, 2)):
+        self.buttons_subfigure.subplots(*size)
 
         choose_line_button = plt.Button(self.buttons_subfigure.axes[0], 'choose line')
         self.buttons.update({"choose_line_button": choose_line_button})
@@ -247,6 +245,16 @@ class ResonanceFitGraphics:
         show_lock_error_button = plt.Button(self.buttons_subfigure.axes[1], 'lock error')
         self.buttons.update({"show_lock_error_button": show_lock_error_button})
         show_lock_error_button.on_clicked(lambda _: self.update_active_button("show_lock_error_button"))
+
+    def plot_data(self):
+        if self.fig is None:
+            self.initialize_figure()
+
+        self.plot_subfigure.axes[0].clear(), self.plot_subfigure.axes[1].clear()
+        transmission_spectrum = self.resonance_fit.cavity.transmission_spectrum
+        self.plot_subfigure.axes[0].plot(self.resonance_fit.x_axis, transmission_spectrum)
+        self.plot_subfigure.axes[1].plot(self.resonance_fit.x_axis, self.resonance_fit.rubidium_lines.data)
+        plt.pause(0.05)
 
     def plot_fit(self, title=None):
         if self.fig is None:
@@ -259,28 +267,19 @@ class ResonanceFitGraphics:
         title = title or default_title
         self.fig.suptitle(title)
         self.plot_transmission_fit(self.plot_subfigure.axes[0])
-        plt.pause(0.05)
         self.plot_rubidium_lines(self.plot_subfigure.axes[1])
-        plt.pause(0.05)
         self.show_3rd_axis and self.plot_lock_error(self.plot_subfigure.axes[2])
         plt.pause(0.05)
 
     def plot_transmission_fit(self, ax):
-        ax.clear()
-
-        spectrum = self.resonance_fit.cavity.transmission_spectrum
         fit = self.resonance_fit.cavity.transmission_spectrum_func(self.resonance_fit.relevant_x_axis)
         ax.scatter(*self.resonance_fit.lorentzian_center, c='g')
-        ax.plot(self.resonance_fit.x_axis, spectrum)
         ax.plot(self.resonance_fit.relevant_x_axis, fit)
-        plt.pause(0.05)
 
     def plot_rubidium_lines(self, ax):
-        ax.clear()
         rubidium_peaks = self.resonance_fit.rubidium_peaks
         ax.scatter(*rubidium_peaks.T, c='r')
         ax.scatter(*rubidium_peaks[self.resonance_fit.lock_idx], c='g')
-        ax.plot(self.resonance_fit.x_axis, self.resonance_fit.rubidium_lines.data)
 
     def plot_lock_error(self, ax):
         ax.clear()

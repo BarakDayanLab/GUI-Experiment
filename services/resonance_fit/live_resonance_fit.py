@@ -8,10 +8,11 @@ from services.resonance_fit.resonance_fit import ResonanceFit, ResonanceFitGraph
 
 class FetchResonanceFit(ResonanceFit):
     def __init__(self, wait_time=0.1, calc_k_ex=False, save_folder=None, save_time=60, show_buttons=False):
-        super().__init__(calc_k_ex=calc_k_ex, save_folder=save_folder, save_time=save_time, show_buttons=show_buttonss)
+        super().__init__(calc_k_ex=calc_k_ex, save_folder=save_folder, save_time=save_time, show_buttons=show_buttons)
         self.wait_time = wait_time
 
         self.stop_condition = False
+        self.graphics = ResonanceFitGraphics(self, show_buttons=show_buttons)
 
     # ------------------ READ DATA ------------------ #
     def read_transmission_and_rubidium_spectrum(self):
@@ -31,6 +32,9 @@ class FetchResonanceFit(ResonanceFit):
 
             self.update_transmission_spectrum(transmission_spectrum)
             self.update_rubidium_lines(rubidium_lines)
+
+            if hasattr(self, "graphics"):
+                self.graphics.plot_data()
 
             if not self.calibrate_x_axis():
                 continue
