@@ -209,7 +209,7 @@ class Cavity_lock_GUI(Scope_GUI):
         except Exception as ex:
             tb = traceback.format_exc()
             print(tb)
-            pass
+            raise Exception('Could not save file.')
 
     def create_error_signal_folder(self):
         all_error_sig_root = os.path.join(self.MOUNT_DRIVE, r'Lab_2023\Experiment_results\QRAM\Locking_PID_Error')
