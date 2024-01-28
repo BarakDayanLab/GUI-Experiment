@@ -9,6 +9,7 @@ class CavityLock(RedPitayaResonanceFit):
     def __init__(self):
         self.HMP4040 = HMP4040Visa()
         self.graphics = CavityLockGui(self)
+        self.tunings = [0, 0, 0]
         super().__init__()
 
     def update_tunings(self, index, value):
@@ -62,3 +63,7 @@ class CavityLockGui(ResonanceFitGraphics):
         lock_button = plt.Button(self.buttons_subfigure.axes[7], 'start lock')
         self.buttons.update({"lock_button": lock_button})
         lock_button.on_clicked(lambda _: self.update_active_button("choose_line_button"))
+
+
+if __name__ == '__main__':
+    cavity_lock = CavityLock()

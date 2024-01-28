@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
-from cavity import RubidiumLines, CavityFwhm, CavityKex
+from services.resonance_fit.cavity import RubidiumLines, CavityFwhm, CavityKex
 from pynput.keyboard import GlobalHotKeys
 
 
@@ -96,6 +96,8 @@ class ResonanceFit:
 
     def update_rubidium_lines(self, rubidium_lines):
         self.rubidium_lines.data = self.preprocess_data(rubidium_lines)
+        if self.x_axis is None:
+            self.x_axis = np.arange(self.rubidium_lines.num_points)
 
     def update_transmission_spectrum(self, transmission_spectrum):
         self.cavity.transmission_spectrum = self.preprocess_data(transmission_spectrum)

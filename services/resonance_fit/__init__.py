@@ -1,3 +1,3 @@
-from resonance_fit import ResonanceFit, ResonanceFitGraphics
-from redpitaya_resonance_fit import RedPitayaResonanceFit
-from live_resonance_fit import ScopeResonanceFit
+from services.resonance_fit.resonance_fit import ResonanceFit, ResonanceFitGraphics
+from services.resonance_fit.redpitaya_resonance_fit import RedPitayaResonanceFit
+from services.resonance_fit.live_resonance_fit import ScopeResonanceFit
