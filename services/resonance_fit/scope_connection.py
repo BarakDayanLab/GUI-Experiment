@@ -78,12 +78,12 @@ class FakeScope:
         self.data = {channels_dict["transmission"]: np.load("transmission.npy"),
                      channels_dict["rubidium"]: np.load("rubidium.npy")
                      }
-        self.num_data_points = self.data[channels_dict["transmission"]].shape[1]
+        self.num_frames, self.num_data_points = self.data[channels_dict["transmission"]].shape
         self.time_axis = np.linspace(0, 100, self.num_data_points)
         self.current_idx = {channels_dict["transmission"]: 0,
                             channels_dict["rubidium"]: 0}
 
     def get_data(self, channel: int):
-        data = self.data[channel][self.current_idx[channel]]
+        data = self.data[channel][self.current_idx[channel] % self.num_frames]
         self.current_idx[channel] += 1
         return self.time_axis, data

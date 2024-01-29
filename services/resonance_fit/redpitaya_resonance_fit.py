@@ -8,16 +8,7 @@ from services.resonance_fit.resonance_fit import ResonanceFitGraphics
 class RedPitayaResonanceFit(ResonanceFit):
     def __init__(self, host="rp-ffffb4.local", graphics=None):
         super().__init__()
-        self.config = {'locker': 'cavity'}
-        self.red_pitaya = Redpitaya(host,
-                                    got_data_callback=self.got_data_callback,
-                                    dialogue_print_callback=self.dialogue_print_callback,
-                                    config=self.config)
-        self.updateTriggerSweep()
-        self.updateTriggerSource()
-        self.updateTriggerSlope()
-        self.configure_input_channels()
-        self.red_pitaya.run()
+
         self.graphics = graphics(self) if graphics is not None else None
 
         while True:
