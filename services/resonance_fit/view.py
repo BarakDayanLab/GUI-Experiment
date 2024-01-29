@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from .controller import ResonanceFitController
+from pynput.keyboard import GlobalHotKeys
 from .model import Model
 from queue import Queue
 import matplotlib.animation as animation
@@ -17,10 +18,13 @@ class App(tk.Tk):
 
         self.model = Model(cavity)
         self.controller = ResonanceFitController(self, self.model, data_loader)
-        self.protocol("WM_DELETE_WINDOW", self.controller.stop)
 
         self.geometry("1600x800")
         self.wm_title("Resonance Fit")
+        hotkeys = {"<ctrl>+p": self.pause,
+                   "<ctrl>+q": self.stop, }
+        self.keyboard_listener = GlobalHotKeys(hotkeys)
+        self.keyboard_listener.start()
 
         self.main_container = tk.Frame(self)
         self.main_container.pack(side="top", fill="both", expand=True)
@@ -31,11 +35,24 @@ class App(tk.Tk):
         self.plot_frame = MatplotlibContainer(self.main_container, self)
         self.plot_frame.pack(side="left", fill="both", expand=False)
 
-        # self.after(1000, self.buttons_container.activate_calibrate_fit_button)
+        self.after(1000, self.buttons_container.activate_calibrate_fit_button)
+
+    def stop(self):
+        self.controller.stop()
+        self.empty_queue()
+        self.queue.join()
+
+    def empty_queue(self):
+        while not self.queue.empty():
+            self.queue.get()
+
+    def pause(self):
+        self.controller.lock.acquire()
+        self.empty_queue()
 
     @staticmethod
     def show_calibration_window(rubidium_spectrum):
-        fig, ax = plt.subplots(figsize=(10, 3))
+        fig, ax = plt.subplots(figsize=(16, 5))
         ax.plot(np.arange(len(rubidium_spectrum)), rubidium_spectrum)
         points = fig.ginput(2, timeout=0, show_clicks=True)
         plt.close(fig)
@@ -70,7 +87,7 @@ class MatplotlibContainer(tk.Frame):
         self.toolbar = NavigationToolbar2Tk(self.canvas, self)
         self.widget.pack(side="top", fill="both", expand=True)
 
-        self.animation = animation.FuncAnimation(self.fig, self.plot_data, interval=40,
+        self.animation = animation.FuncAnimation(self.fig, self.plot_data, interval=50,
                                                  init_func=self.setup_plot, cache_frame_data=False,
                                                  blit=True)
 
@@ -104,7 +121,7 @@ class MatplotlibContainer(tk.Frame):
                             self.axes["rubidium"].scatter([], [], c='r'),
                             self.axes["rubidium"].scatter([], [], c='g')]
 
-        self.axes["rubidium"].set_ylim(0, 1)
+        self.axes["rubidium"].set_ylim(0, 1.1)
 
         return *transmission_artists, *rubidium_artists
 

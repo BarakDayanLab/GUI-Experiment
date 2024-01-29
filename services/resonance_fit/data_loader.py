@@ -7,7 +7,7 @@ import time
 
 class DataLoader:
     def __init__(self):
-        self.thread = Thread(target=self.load_data)
+        self.thread = Thread(target=self.load_data, daemon=True)
         self.queue = Queue(2)
         self.stop = False
 
@@ -25,6 +25,9 @@ class DataLoader:
     def stop(self):
         self.stop = True
         self.thread.join()
+        while not self.queue.empty():
+            self.queue.get()
+        self.queue.join()
 
 
 class ScopeDataLoader(DataLoader):
@@ -68,7 +71,7 @@ class DataLoaderRedPitaya(DataLoader):
             self.red_pitaya.set_triggerSource("EXT", True)
             self.red_pitaya.set_triggerSweep('NORMAL', True)
             self.red_pitaya.set_triggerSlope('FALLING', True)
-            self.red_pitaya.set_triggerLevel(0.05, True)
+            self.red_pitaya.set_triggerLevel(0.1, True)
             self.red_pitaya.set_triggerDelay(0, True)
 
 
@@ -96,6 +99,5 @@ class DataLoaderRedPitaya(DataLoader):
         self.red_pitaya.set_inputState(2, True)
 
     @staticmethod
-    def dialogue_print_callback(message):
+    def dialogue_print_callback(message, color=""):
         print(message)
-

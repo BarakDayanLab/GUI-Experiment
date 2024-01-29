@@ -116,11 +116,13 @@ class Model:
     def fit_data(self, rubidium_lines, transmission_spectrum):
         self.rubidium_lines.data = self.preprocess_data(rubidium_lines)
         self.cavity.transmission_spectrum = self.preprocess_data(transmission_spectrum)
+        if len(self.x_axis) != self.rubidium_lines.num_points:
+            self.x_axis = np.arange(self.rubidium_lines.num_points)
 
-        if not self.calibrate_x_axis():
+        if not self.calibrate_x_axis() or self.fit_transmission_spectrum():
             return False
-        if not self.fit_transmission_spectrum():
-            return False
+        # if not self.fit_transmission_spectrum():
+        #     return False
 
         params = self.cavity.get_fit_parameters() + [self.lock_error]
         self.fit_params_history = np.vstack([self.fit_params_history, params])
