@@ -4,6 +4,8 @@ from .cavity_lock_model import CavityLockModel
 from .config import default_parameters
 from services.resonance_fit.data_loader import DataLoaderRedPitaya
 import sys
+import time
+from sched import scheduler
 
 
 class CavityLockController:
@@ -21,6 +23,10 @@ class CavityLockController:
         isinstance(self.model.data_loader, DataLoaderRedPitaya) and self.bind_pid()
 
         self.update_default_view()
+
+        # self.scheduler = scheduler(time.time, time.sleep)
+        # self.scheduler.enter(0.1, 1, self.update_view)
+        # self.scheduler.run(blocking=False)
 
     # ------------------ RUN ------------------ #
 
@@ -79,6 +85,11 @@ class CavityLockController:
         self.app.buttons_container.device_control.halogen_is_checked.set(default_parameters.HMP_HALOGEN_IS_ON)
         self.app.buttons_container.device_control.halogen_voltage.set(default_parameters.HMP_HALOGEN_VOLTAGE)
 
+    # def update_view(self):
+    #     laser_voltage, laser_current = self.model.get_laser_voltage(), self.model.get_laser_current()
+    #     halogen_voltage, halogen_current = self.model.get_halogen_voltage(), self.model.get_halogen_current()
+    #     self.update_laser_halogen((laser_voltage, laser_current), (halogen_voltage, halogen_current))
+
     # ------------------ BIND ------------------ #
 
     def bind_buttons(self):
@@ -97,7 +108,7 @@ class CavityLockController:
 
     def bind_devices(self):
         self.app.buttons_container.device_control.laser_checkbox.bind("<Button-1>", self.update_laser_is_checked)
-        self.app.buttons_container.device_control.laser_voltage_control.bind("<Return>", self.update_laser_current)
+        self.app.buttons_container.device_control.laser_current_control.bind("<Return>", self.update_laser_current)
         self.app.buttons_container.device_control.halogen_checkbox.bind("<Button-1>", self.update_halogen_is_checked)
         self.app.buttons_container.device_control.halogen_voltage_control.bind("<Return>", self.update_halogen_voltage)
 
@@ -118,7 +129,7 @@ class CavityLockController:
     def show_error_signal(self, event):
         pass
 
-    def update_pid_output(self, laser_params, halogen_params):
+    def update_laser_halogen(self, laser_params, halogen_params):
         voltage, current = laser_params
         self.app.buttons_container.device_control.laser_voltage.set(voltage)
         self.app.buttons_container.device_control.laser_current.set(current)

@@ -31,9 +31,9 @@ class CavityLockModel:
         self.lock = Lock()
         self.started_event = Event()
 
-        # self.scheduler = scheduler(time.time, time.sleep)
-        # self.save_folder and self.scheduler.enter(5, 1, self.save_spectrum)
-        # self.scheduler.run(blocking=False)
+        self.scheduler = scheduler(time.time, time.sleep)
+        self.save_folder and self.scheduler.enter(5, 1, self.save_spectrum)
+        self.scheduler.run(blocking=False)
 
     def start(self, controller):
         self.controller = controller
@@ -56,9 +56,9 @@ class CavityLockModel:
         output = self.pid(self.resonance_fit.lock_error)
         self.set_laser_current(output)
 
-        laser_params = (self.get_laser_voltage(), self.get_laser_current())
-        halogen_params = (self.get_halogen_voltage(), self.get_halogen_current())
-        self.controller.update_pid_output(laser_params, halogen_params)
+        # laser_params = (self.get_laser_voltage(), self.get_laser_current())
+        # halogen_params = (self.get_halogen_voltage(), self.get_halogen_current())
+        # self.controller.update_laser_halogen(laser_params, halogen_params)
 
     # ------------------ RESONANCE FIT ------------------ #
 

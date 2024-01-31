@@ -16,12 +16,16 @@ class App(tk.Tk):
         self.controller = controller
         self.pause = False
 
+        style = ttk.Style(self)
+        self.tk.call("source", "forest-dark.tcl")
+        style.theme_use("forest-dark")
+
         self.protocol("WM_DELETE_WINDOW", self.stop)
         self.geometry("1600x800")
         self.wm_title("Cavity Lock")
 
         self.main_container = tk.Frame(self)
-        self.main_container.pack(side="top", fill="both", expand=True)
+        self.main_container.pack(side="top", fill="both", expand=True, padx=30, pady=30)
 
         self.buttons_container = ButtonsContainer(self.main_container, self)
         self.buttons_container.pack(side="right", fill="y")
@@ -293,7 +297,7 @@ class PidControl(ttk.Frame):
         start, end = parameter_bounds.PID_OFFSET_BOUNDS
         self.lock_offset_label = ttk.Label(self, text="Lock Offset:", font=('Helvetica', 12, "bold"))
         self.lock_offset_label.grid(row=2, column=0, columnspan=3)
-        self.lock_offset_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f", textvariable=self.lock_offset)
+        self.lock_offset_control = ttk.Spinbox(self, from_=start, to=end, increment=0.5, format="%.1f", textvariable=self.lock_offset)
         self.lock_offset_control.grid(row=2, column=3, columnspan=3, padx=10, pady=10)
 
         self.start_lock_button = ttk.Button(self, text="Start Lock", command=self.toggle_start, width=20)
