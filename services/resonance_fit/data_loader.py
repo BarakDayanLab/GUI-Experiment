@@ -8,26 +8,21 @@ import time
 class DataLoader:
     def __init__(self):
         self.thread = Thread(target=self.load_data, daemon=True)
-        self.queue = Queue(2)
-        self.stop = False
+        self.is_stopped = False
+        self.on_data_callback = lambda data: None
+
+    def update(self, params):
+        pass
 
     def load_data(self):
         pass
-
-    def put_data_to_queue(self, data):
-        if self.queue.full():
-            self.queue.get()
-        self.queue.put(data)
 
     def start(self):
         self.thread.start()
 
     def stop(self):
-        self.stop = True
+        self.is_stopped = True
         self.thread.join()
-        while not self.queue.empty():
-            self.queue.get()
-        self.queue.join()
 
 
 class ScopeDataLoader(DataLoader):
@@ -38,7 +33,7 @@ class ScopeDataLoader(DataLoader):
         self.wait_time = wait_time
 
     def load_data(self):
-        while not self.stop:
+        while not self.is_stopped:
             try:
                 channel_number = self.channels_dict["rubidium"]
                 _, rubidium_spectrum = self.scope.get_data(channel_number)
@@ -46,7 +41,7 @@ class ScopeDataLoader(DataLoader):
                 channel_number = self.channels_dict["transmission"]
                 _, transmission_spectrum = self.scope.get_data(channel_number)
 
-                self.put_data_to_queue((rubidium_spectrum, transmission_spectrum))
+                self.on_data_callback((rubidium_spectrum, transmission_spectrum))
                 time.sleep(self.wait_time)
             except Exception as e:
                 print(e)
@@ -62,6 +57,42 @@ class DataLoaderRedPitaya(DataLoader):
                                     dialogue_print_callback=self.dialogue_print_callback,
                                     config=self.config)
 
+        if not self.red_pitaya.connected:
+            self.red_pitaya.close()
+            self.red_pitaya = Redpitaya(host,
+                                        got_data_callback=self.got_data,
+                                        dialogue_print_callback=self.dialogue_print_callback,
+                                        config=self.config)
+
+        if not self.red_pitaya.connected:
+            self.red_pitaya.close()
+            raise Exception("Red Pitaya not connected")
+
+    def stop(self):
+        super().stop()
+        self.red_pitaya.close()
+
+    def update(self, params):
+        """
+        Update the Red Pitaya parameters
+
+        Parameters:
+            params {dict} -- The parameters to update the Red Pitaya. The dictionary should contain the following keys:
+                offset_1 {float} -- The offset of channel 1
+                offset_2 {float} -- The offset of channel 2
+                voltage_1 {float} -- The voltage of channel 1
+                voltage_2 {float} -- The voltage of channel 2
+                trigger_level {float} -- The trigger level
+                trigger_delay {float} -- The trigger delay
+        """
+        self.red_pitaya.set_outputOffset(output=1, v=params["offset_1"])
+        self.red_pitaya.set_outputOffset(output=2, v=params["offset_2"])
+        self.red_pitaya.set_outputAmplitude(output=1, v=params["voltage_1"])
+        self.red_pitaya.set_outputAmplitude(output=2, v=params["voltage_2"])
+        self.red_pitaya.set_triggerLevel(params["trigger_level"], True)
+        self.red_pitaya.set_triggerDelay(params["trigger_delay"], True)
+        self.red_pitaya.updateParameters()
+
     def load_data(self):
         self.red_pitaya.run()
 
@@ -73,19 +104,9 @@ class DataLoaderRedPitaya(DataLoader):
             self.red_pitaya.set_triggerSlope('FALLING', True)
             self.red_pitaya.set_triggerLevel(0.1, True)
             self.red_pitaya.set_triggerDelay(0, True)
-
-
-            # self.red_pitaya.set_outputFunction(output=1, function=str(self.outputsFrame.comboBox_ch1OutFunction.currentText()))
-            # self.red_pitaya.set_outputFunction(output=2, function=str(self.outputsFrame.comboBox_ch2OutFunction.currentText()))
-            # self.red_pitaya.set_outputAmplitude(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutAmp.value()))
-            # self.red_pitaya.set_outputAmplitude(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutAmp.value()))
-            # self.red_pitaya.set_outputFrequency(output=1, freq=float(self.outputsFrame.doubleSpinBox_ch1OutFreq.value()))
-            # self.red_pitaya.set_outputFrequency(output=2, freq=float(self.outputsFrame.doubleSpinBox_ch2OutFreq.value()))
-            # self.red_pitaya.set_outputOffset(output=1, v=float(self.outputsFrame.doubleSpinBox_ch1OutOffset.value()))
-            # self.red_pitaya.set_outputOffset(output=2, v=float(self.outputsFrame.doubleSpinBox_ch2OutOffset.value()))
             self.configure_input_channels()
 
-        self.put_data_to_queue(data)
+        self.on_data_callback(data)
 
     def configure_input_channels(self):
         # Set channel 1

@@ -75,8 +75,8 @@ class Scope(Instrument):
 class FakeScope:
     def __init__(self, channels_dict: dict):
         self.channels_dict = channels_dict
-        self.data = {channels_dict["transmission"]: np.load("transmission.npy"),
-                     channels_dict["rubidium"]: np.load("rubidium.npy")
+        self.data = {channels_dict["transmission"]: np.load("./transmission.npy"),
+                     channels_dict["rubidium"]: np.load("./rubidium.npy")
                      }
         self.num_frames, self.num_data_points = self.data[channels_dict["transmission"]].shape
         self.time_axis = np.linspace(0, 100, self.num_data_points)

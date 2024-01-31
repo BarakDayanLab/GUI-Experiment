@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 from dataclasses import dataclass, field
 from typing import Optional
+from . import utililties as utils
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Cavity:
         self.reflection_spectrum: Optional[np.ndarray] = None
 
         self.x_0 = 1
-        self.y_0 = 0.5
+        self.y_0 = 0
         self.m = 0
         self.b = 0
 
@@ -79,30 +80,28 @@ class Cavity:
 
 class CavityKex(Cavity):
     def __init__(self, k_i: float, h: float):
-        bounds = [(0, ), (np.inf, )]
+        bounds = [(0,), (np.inf,)]
         super().__init__("k_ex", ["k_ex"], bounds)
         self.k_i = k_i
         self.h = h
         self.k_ex = 30
 
-    def transmission_spectrum_func(self, x_detuning):
-        k_total = self.k_ex + self.k_i
-        k_with_detuning = k_total + 1j * (x_detuning - self.x_0)
-        return self.linear_factor(x_detuning) * np.abs(1 - 2 * self.k_ex * k_with_detuning / (k_with_detuning ** 2 + self.h ** 2)) ** 2 + self.y_0
+    def transmission_spectrum_func(self, detunings):
+        detunings = detunings - self.x_0
+        return self.linear_factor(detunings) * (utils.transmission_spectrum(detunings, self.k_ex, self.k_i, self.h)) + self.y_0
 
-    def reflection_spectrum_func(self, x_detuning):
-        k_total = self.k_ex + self.k_i
-        k_with_detuning = k_total + 1j * (x_detuning - self.x_0)
-        return np.abs(2 * self.k_ex * self.h / (k_with_detuning ** 2 + self.h ** 2)) ** 2 + self.y_0
+    def reflection_spectrum_func(self, detunings):
+        detunings = detunings - self.x_0
+        return self.linear_factor(detunings) * (utils.reflection_spectrum(detunings, self.k_ex, self.k_i, self.h)) + self.y_0
 
 
 class CavityFwhm(Cavity):
     def __init__(self):
         bounds = [(-np.inf, 0), (np.inf, np.inf)]
         super().__init__("fwhm", ["amp", "fwhm"], bounds)
-        self.fwhm = 50
         self.amp = 1
+        self.fwhm = 50
 
-    def transmission_spectrum_func(self, x_detuning):
-        return self.linear_factor(x_detuning) * (0.5 * self.fwhm *
-                                                 self.amp) / (np.pi * ((x_detuning - self.x_0) ** 2 + (0.5 * self.fwhm) ** 2)) + self.y_0
+    def transmission_spectrum_func(self, detunings):
+        detunings = detunings - self.x_0
+        return self.linear_factor(detunings) * (utils.lorentzian_spectrum(detunings, self.fwhm, self.amp)) + self.y_0
