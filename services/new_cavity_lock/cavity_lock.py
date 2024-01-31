@@ -14,9 +14,9 @@ are independent of each other and can be changed without affecting the other.
 if __name__ == '__main__':
     cavity = CavityFwhm()
     resonance_fit = ResonanceFit(cavity)
-    data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 3}, scope_ip=None)
+    # data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 3}, scope_ip=None)
 
-    # data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
+    data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
 
     model = CavityLockModel(data_loader, resonance_fit)
 

@@ -13,7 +13,7 @@ class ResonanceFit:
         self.lock_idx = 4
         self.lock_offset = 0
 
-        self.x_axis = []
+        self.x_axis = np.array([])
         self.current_relevant_area = None
         self.relevant_x_axis = None
 
@@ -63,7 +63,6 @@ class ResonanceFit:
         self.rubidium_lines.peaks_idx, _ = find_peaks(enhanced_data, prominence=self.prominence,
                                                       wlen=self.w_len, distance=self.distance)
         if self.rubidium_lines.num_peaks != 6:
-            print(self.rubidium_lines.num_peaks)
             return False
         self.x_axis = np.arange(self.rubidium_lines.num_points) * self.rubidium_lines.idx_to_freq_factor()
         return True

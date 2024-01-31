@@ -69,8 +69,8 @@ class DataLoaderRedPitaya(DataLoader):
             raise Exception("Red Pitaya not connected")
 
     def stop(self):
-        super().stop()
         self.red_pitaya.close()
+        super().stop()
 
     def update(self, params):
         """
@@ -104,6 +104,8 @@ class DataLoaderRedPitaya(DataLoader):
             self.red_pitaya.set_triggerSlope('FALLING', True)
             self.red_pitaya.set_triggerLevel(0.1, True)
             self.red_pitaya.set_triggerDelay(0, True)
+            self.red_pitaya.set_inverseChannel(False, 1)
+            self.red_pitaya.set_inverseChannel(False, 2)
             self.configure_input_channels()
 
         self.on_data_callback(data)
@@ -121,4 +123,4 @@ class DataLoaderRedPitaya(DataLoader):
 
     @staticmethod
     def dialogue_print_callback(message, color=""):
-        print(message)
+        pass

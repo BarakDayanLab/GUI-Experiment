@@ -17,7 +17,7 @@ class CavityLockModel:
 
         try:
             # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
-            self.HMP4040 = HMP4040Visa(port='ASRL4::INSTR')
+            self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
         except Exception as e:
             print(e)
             self.hmp4040 = None
@@ -53,6 +53,7 @@ class CavityLockModel:
         self.lock.release()
 
     def update_pid(self):
+        return
         output = self.pid(self.resonance_fit.lock_error)
         self.set_laser_current(output)
 

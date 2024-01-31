@@ -46,6 +46,7 @@ class CavityLockController:
         self.model.stop()
 
     def load_fit_data(self):
+        self.model.started_event.wait()
         return self.model.get_current_fit()
 
     def update_all_devices(self):
