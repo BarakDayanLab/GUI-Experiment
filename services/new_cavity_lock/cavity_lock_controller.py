@@ -56,9 +56,9 @@ class CavityLockController:
             self.update_kd()
             self.update_lock_offset()
 
-            self.update_laser_is_checked()
+            # self.update_laser_is_checked(self.app.buttons_container.device_control.laser_is_checked.get())
             self.update_laser_current()
-            self.update_halogen_is_checked()
+            # self.update_halogen_is_checked(self.app.buttons_container.device_control.halogen_is_checked.get())
             self.update_halogen_voltage()
         else:
             self.app.buttons_container.disable_hmp()
@@ -101,10 +101,10 @@ class CavityLockController:
         self.app.buttons_container.pid_control.start_lock_button.bind("<Button-1>", self.toggle_lock)
 
     def bind_devices(self):
-        self.app.buttons_container.device_control.laser_checkbox.bind("<Button-1>", self.update_laser_is_checked)
+        self.app.buttons_container.device_control.laser_is_checked.trace_add("write", self.update_laser_is_checked)
         self.app.buttons_container.device_control.laser_current_control.bind("<<Increment>>", self.update_laser_current)
         self.app.buttons_container.device_control.laser_current_control.bind("<<Decrement>>", self.update_laser_current)
-        self.app.buttons_container.device_control.halogen_checkbox.bind("<Button-1>", self.update_halogen_is_checked)
+        self.app.buttons_container.device_control.halogen_is_checked.trace_add("write", self.update_halogen_is_checked)
         self.app.buttons_container.device_control.halogen_voltage_control.bind("<<Increment>>", self.update_halogen_voltage)
         self.app.buttons_container.device_control.halogen_voltage_control.bind("<<Decrement>>", self.update_halogen_voltage)
 
@@ -144,34 +144,36 @@ class CavityLockController:
         buttons.device_control.laser_is_checked.set(is_active)
         buttons.device_control.laser_current_control.config(state="disabled" if is_active else "normal")
         buttons.device_control.laser_checkbox.config(state="disabled" if is_active else "normal")
-        self.update_laser_is_checked()
+        self.app.buttons_container.device_control.laser_is_checked.set(is_active)
 
     def update_kp(self, event=None):
-        self.model.set_kp(self.app.buttons_container.pid_control.kp.get())
+        self.model.set_kp(-self.app.buttons_container.pid_control.kp.get()/100)
 
     def update_ki(self, event=None):
-        self.model.set_ki(self.app.buttons_container.pid_control.ki.get())
+        self.model.set_ki(-self.app.buttons_container.pid_control.ki.get()/100)
 
     def update_kd(self, event=None):
-        self.model.set_kd(self.app.buttons_container.pid_control.kd.get())
+        self.model.set_kd(-self.app.buttons_container.pid_control.kd.get()/100)
 
     def update_lock_offset(self, event=None):
         self.model.set_lock_offset(self.app.buttons_container.pid_control.lock_offset.get())
 
     # ------------------ DEVICES ------------------ #
 
-    def update_laser_is_checked(self, event=None):
-        self.model.set_laser_on_off(self.app.buttons_container.device_control.laser_is_checked.get())
+    def update_laser_is_checked(self, *args):
+        is_checked = self.app.buttons_container.device_control.laser_is_checked.get()
+        self.model.set_laser_on_off(is_checked)
 
     def update_laser_current(self, event=None):
-        self.model.set_laser_current(self.app.buttons_container.device_control.laser_voltage.get())
+        self.model.set_laser_current(self.app.buttons_container.device_control.laser_current.get())
 
     def view_update_laser_current(self):
         current = self.model.get_laser_current()
         self.app.buttons_container.device_control.laser_current.set(current)
 
-    def update_halogen_is_checked(self, event=None):
-        self.model.set_halogen_on_off(self.app.buttons_container.device_control.halogen_is_checked.get())
+    def update_halogen_is_checked(self, *args):
+        is_checked = self.app.buttons_container.device_control.halogen_is_checked.get()
+        self.model.set_halogen_on_off(is_checked)
 
     def update_halogen_voltage(self, event=None):
         self.model.set_halogen_voltage(self.app.buttons_container.device_control.halogen_voltage.get())

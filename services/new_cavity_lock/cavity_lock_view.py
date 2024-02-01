@@ -244,13 +244,13 @@ class DeviceControl(ttk.Frame):
         start, end = parameter_bounds.HMP_LASER_CURRENT_BOUNDS
         self.laser_checkbox = ttk.Checkbutton(self, text="Laser[current]:", variable=self.laser_is_checked)
         self.laser_checkbox.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-        self.laser_current_control = ttk.Spinbox(self, from_=start, to=end, increment=0.01, format="%.2f A", textvariable=self.laser_current, width=10, state="readonly")
+        self.laser_current_control = ttk.Spinbox(self, from_=start, to=end, increment=0.01, format="%.2f", textvariable=self.laser_current, width=10, state="readonly")
         self.laser_current_control.grid(row=2, column=1, padx=10, pady=10)
 
         start, end = parameter_bounds.HMP_HALOGEN_VOLTAGE_BOUNDS
         self.halogen_checkbox = ttk.Checkbutton(self, text="Halogen[voltage]:", variable=self.halogen_is_checked)
         self.halogen_checkbox.grid(row=3, column=0, padx=10, pady=10, sticky="w")
-        self.halogen_voltage_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f V", textvariable=self.halogen_voltage, width=10, state="readonly")
+        self.halogen_voltage_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f", textvariable=self.halogen_voltage, width=10, state="readonly")
         self.halogen_voltage_control.grid(row=3, column=1, padx=10, pady=10)
 
 

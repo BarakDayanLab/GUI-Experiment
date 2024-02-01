@@ -57,6 +57,7 @@ class CavityLockModel:
         if not self.pid.auto_mode:
             return
         current = self.set_laser_current(output)
+        print(output)
 
     # ------------------ RESONANCE FIT ------------------ #
 
@@ -141,7 +142,7 @@ class CavityLockModel:
 
     def set_laser_on_off(self, is_checked):
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
-        self.hmp4040.outputState(is_checked)
+        self.hmp4040.outputState(int(is_checked))
 
     def set_laser_current(self, laser_current):
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
@@ -157,7 +158,7 @@ class CavityLockModel:
 
     def set_halogen_on_off(self, is_checked):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
-        self.hmp4040.outputState(is_checked)
+        self.hmp4040.outputState(int(is_checked))
 
     def set_halogen_voltage(self, halogen_voltage):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
