@@ -4,8 +4,6 @@ from .cavity_lock_model import CavityLockModel
 from .config import default_parameters
 from services.resonance_fit.data_loader import DataLoaderRedPitaya
 import sys
-import time
-from sched import scheduler
 
 
 class CavityLockController:
@@ -19,14 +17,11 @@ class CavityLockController:
         self.keyboard_listener.start()
 
         self.bind_buttons()
-        self.model.hmp4040 is not None and self.bind_devices()
-        isinstance(self.model.data_loader, DataLoaderRedPitaya) and self.bind_pid()
-
+        self.bind_pid()
+        self.bind_devices()
+        # self.model.hmp4040 is not None and self.bind_devices()
+        # isinstance(self.model.data_loader, DataLoaderRedPitaya) and self.bind_pid()
         self.update_default_view()
-
-        # self.scheduler = scheduler(time.time, time.sleep)
-        # self.scheduler.enter(0.1, 1, self.update_view)
-        # self.scheduler.run(blocking=False)
 
     # ------------------ RUN ------------------ #
 
@@ -86,11 +81,6 @@ class CavityLockController:
         self.app.buttons_container.device_control.halogen_is_checked.set(default_parameters.HMP_HALOGEN_IS_ON)
         self.app.buttons_container.device_control.halogen_voltage.set(default_parameters.HMP_HALOGEN_VOLTAGE)
 
-    # def update_view(self):
-    #     laser_voltage, laser_current = self.model.get_laser_voltage(), self.model.get_laser_current()
-    #     halogen_voltage, halogen_current = self.model.get_halogen_voltage(), self.model.get_halogen_current()
-    #     self.update_laser_halogen((laser_voltage, laser_current), (halogen_voltage, halogen_current))
-
     # ------------------ BIND ------------------ #
 
     def bind_buttons(self):
@@ -101,17 +91,22 @@ class CavityLockController:
         self.app.buttons_container.pid_control.lock_offset_control.bind("<Return>", self.update_lock_offset)
 
     def bind_pid(self):
-        self.app.buttons_container.pid_control.kp_control.bind("<Return>", self.update_kp)
-        self.app.buttons_container.pid_control.ki_control.bind("<Return>", self.update_ki)
-        self.app.buttons_container.pid_control.kd_control.bind("<Return>", self.update_kd)
+        self.app.buttons_container.pid_control.kp_control.bind("<<Increment>>", self.update_kp)
+        self.app.buttons_container.pid_control.kp_control.bind("<<Decrement>>", self.update_kp)
+        self.app.buttons_container.pid_control.ki_control.bind("<<Increment>>", self.update_ki)
+        self.app.buttons_container.pid_control.ki_control.bind("<<Decrement>>", self.update_ki)
+        self.app.buttons_container.pid_control.kd_control.bind("<<Increment>>", self.update_kd)
+        self.app.buttons_container.pid_control.kd_control.bind("<<Decrement>>", self.update_kd)
 
-        self.app.buttons_container.pid_control.start_lock_button.bind("<Button-1>", self.start_lock)
+        self.app.buttons_container.pid_control.start_lock_button.bind("<Button-1>", self.toggle_lock)
 
     def bind_devices(self):
         self.app.buttons_container.device_control.laser_checkbox.bind("<Button-1>", self.update_laser_is_checked)
-        self.app.buttons_container.device_control.laser_current_control.bind("<Return>", self.update_laser_current)
+        self.app.buttons_container.device_control.laser_current_control.bind("<<Increment>>", self.update_laser_current)
+        self.app.buttons_container.device_control.laser_current_control.bind("<<Decrement>>", self.update_laser_current)
         self.app.buttons_container.device_control.halogen_checkbox.bind("<Button-1>", self.update_halogen_is_checked)
-        self.app.buttons_container.device_control.halogen_voltage_control.bind("<Return>", self.update_halogen_voltage)
+        self.app.buttons_container.device_control.halogen_voltage_control.bind("<<Increment>>", self.update_halogen_voltage)
+        self.app.buttons_container.device_control.halogen_voltage_control.bind("<<Decrement>>", self.update_halogen_voltage)
 
     def bind_red_pitaya(self):
         self.app.buttons_container.red_pitaya_panel.update_button.bind("<Button-1>", self.update_red_pitaya_parameters)
@@ -141,9 +136,15 @@ class CavityLockController:
 
     # ------------------ LOCK ------------------ #
 
-    def start_lock(self, event=None):
-        self.app.buttons_container.pid_control.start_lock_button.config(text="Stop Lock")
-        self.model.toggle_pid_lock()
+    def toggle_lock(self, event=None):
+        buttons = self.app.buttons_container
+        is_active = self.model.toggle_pid_lock(buttons.device_control.laser_current.get())
+        buttons.pid_control.active_lock.set(not is_active)
+        buttons.pid_control.start_lock_button.config(text="Stop Lock" if is_active else "Start Lock")
+        buttons.device_control.laser_is_checked.set(is_active)
+        buttons.device_control.laser_current_control.config(state="disabled" if is_active else "normal")
+        buttons.device_control.laser_checkbox.config(state="disabled" if is_active else "normal")
+        self.update_laser_is_checked()
 
     def update_kp(self, event=None):
         self.model.set_kp(self.app.buttons_container.pid_control.kp.get())
@@ -165,11 +166,19 @@ class CavityLockController:
     def update_laser_current(self, event=None):
         self.model.set_laser_current(self.app.buttons_container.device_control.laser_voltage.get())
 
+    def view_update_laser_current(self):
+        current = self.model.get_laser_current()
+        self.app.buttons_container.device_control.laser_current.set(current)
+
     def update_halogen_is_checked(self, event=None):
         self.model.set_halogen_on_off(self.app.buttons_container.device_control.halogen_is_checked.get())
 
     def update_halogen_voltage(self, event=None):
         self.model.set_halogen_voltage(self.app.buttons_container.device_control.halogen_voltage.get())
+
+    def view_update_halogen_voltage(self):
+        voltage = self.model.get_halogen_voltage()
+        self.app.buttons_container.device_control.halogen_voltage.set(voltage)
 
     # ------------------ RED PITAYA ------------------ #
 

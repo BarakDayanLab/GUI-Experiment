@@ -49,17 +49,14 @@ class CavityLockModel:
 
         self.last_fit_success = self.resonance_fit.fit_data(*data)
 
-        self.hmp4040 and self.update_pid()
         self.lock.release()
+        self.last_fit_success and self.update_pid()
 
     def update_pid(self):
-        return
         output = self.pid(self.resonance_fit.lock_error)
-        self.set_laser_current(output)
-
-        # laser_params = (self.get_laser_voltage(), self.get_laser_current())
-        # halogen_params = (self.get_halogen_voltage(), self.get_halogen_current())
-        # self.controller.update_laser_halogen(laser_params, halogen_params)
+        if not self.pid.auto_mode:
+            return
+        current = self.set_laser_current(output)
 
     # ------------------ RESONANCE FIT ------------------ #
 
@@ -89,7 +86,7 @@ class CavityLockModel:
         lock_error = self.resonance_fit.lock_error
         main_parameter = self.resonance_fit.cavity.main_parameter
         current_fit_value = self.resonance_fit.cavity.current_fit_value
-        title = f"Lock Error: {lock_error:.2f} MHz, {main_parameter}: {current_fit_value:.2f}"
+        title = f"{main_parameter.upper()}: {current_fit_value:.2f}, Lock Error: {lock_error:.2f} MHz"
 
         relevant_x_axis = self.resonance_fit.relevant_x_axis.copy()
         rubidium_peaks = self.resonance_fit.rubidium_peaks.copy()
@@ -114,10 +111,11 @@ class CavityLockModel:
 
     # ------------------ PID ------------------ #
 
-    def toggle_pid_lock(self):
+    def toggle_pid_lock(self, current_value):
         self.lock.acquire()
-        self.pid.auto_mode = not self.pid.auto_mode
+        self.pid.set_auto_mode(not self.pid.auto_mode, current_value)
         self.lock.release()
+        return self.pid.auto_mode
 
     def set_kp(self, kp):
         self.lock.acquire()
@@ -145,9 +143,9 @@ class CavityLockModel:
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
         self.hmp4040.outputState(is_checked)
 
-    def set_laser_current(self, laser_voltage):
+    def set_laser_current(self, laser_current):
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
-        self.hmp4040.setCurrent(laser_voltage)
+        return self.hmp4040.setCurrent(laser_current)
 
     def get_laser_current(self):
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
@@ -163,15 +161,11 @@ class CavityLockModel:
 
     def set_halogen_voltage(self, halogen_voltage):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
-        self.hmp4040.setVoltage(halogen_voltage)
+        return self.hmp4040.setVoltage(halogen_voltage)
 
     def get_halogen_voltage(self):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.getVoltage()
-
-    def get_halogen_current(self):
-        self.HMP4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
-        return self.HMP4040.getCurrent()
 
     # ------------------ SAVE DATA ------------------ #
 

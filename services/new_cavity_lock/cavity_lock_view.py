@@ -25,10 +25,10 @@ class App(tk.Tk):
         self.wm_title("Cavity Lock")
 
         self.main_container = tk.Frame(self)
-        self.main_container.pack(side="top", fill="both", expand=True, padx=30, pady=30)
+        self.main_container.pack(side="top", fill="both", expand=True, padx=20, pady=20)
 
         self.buttons_container = ButtonsContainer(self.main_container, self)
-        self.buttons_container.pack(side="right", fill="y")
+        self.buttons_container.pack(side="right", fill="y", padx=20)
 
         self.plot_frame = MatplotlibContainer(self.main_container, self)
         self.plot_frame.pack(side="left", fill="both", expand=True)
@@ -64,9 +64,9 @@ class App(tk.Tk):
         return point
 
 
-class MatplotlibContainer(tk.Frame):
+class MatplotlibContainer(ttk.Frame):
     def __init__(self, master, app):
-        super().__init__(master)
+        super().__init__(master, style='Card', padding=(5, 5, 5, 5))
         self.master = master
         self.app = app
         self.title = tk.Label(self, text="", justify="center", font=("Helvetica", 28))
@@ -80,7 +80,7 @@ class MatplotlibContainer(tk.Frame):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.master)
         self.widget = self.canvas.get_tk_widget()
         self.toolbar = NavigationToolbar2Tk(self.canvas, self)
-        self.widget.pack(side="top", fill="both", expand=True)
+        self.widget.pack(side="bottom", fill="both", expand=True)
 
         self.animation = animation.FuncAnimation(self.fig, self.plot_data, interval=50,
                                                  init_func=self.setup_plot, cache_frame_data=False,
@@ -168,9 +168,9 @@ class MatplotlibContainer(tk.Frame):
         self.title.config(text="Error")
 
 
-class ButtonsContainer(tk.Frame):
+class ButtonsContainer(ttk.Frame):
     def __init__(self, master, app):
-        super().__init__(master)
+        super().__init__(master, style='Card', padding=(5, 5, 5, 5))
         self.master = master
         self.app = app
         self.popup = None
@@ -199,7 +199,7 @@ class ButtonsContainer(tk.Frame):
         ttk.Separator(self, orient='horizontal').grid(row=4, column=0, columnspan=2, padx=10, pady=10, sticky="we")
 
         self.device_control = DeviceControl(self, self.app)
-        self.device_control.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky="we")
+        self.device_control.grid(row=5, column=0, columnspan=2)
 
     def activate_pid_panel_button(self):
         parameters = (self.red_pitaya_offset_1, self.red_pitaya_offset_2, self.red_pitaya_voltage_1,
@@ -217,11 +217,9 @@ class ButtonsContainer(tk.Frame):
 
     def disable_hmp(self):
         self.device_control.laser_checkbox.config(state="disabled")
-        self.device_control.laser_voltage_control.config(state="disabled")
         self.device_control.laser_current_control.config(state="disabled")
         self.device_control.halogen_checkbox.config(state="disabled")
         self.device_control.halogen_voltage_control.config(state="disabled")
-        self.device_control.halogen_current_control.config(state="disabled")
 
         self.pid_control.start_lock_button.config(state="disabled")
         self.pid_control.kp_control.config(state="disabled")
@@ -236,41 +234,30 @@ class DeviceControl(ttk.Frame):
         self.app = app
 
         self.laser_is_checked = tk.BooleanVar()
-        self.laser_voltage = tk.DoubleVar()
         self.laser_current = tk.DoubleVar()
         self.halogen_is_checked = tk.BooleanVar()
         self.halogen_voltage = tk.DoubleVar()
-        self.halogen_current = tk.DoubleVar()
 
         self.device_control_title = ttk.Label(self, text="Device Control", font=('Helvetica', 16, "bold"))
-        self.device_control_title.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
-
-        self.voltage_label = ttk.Label(self, text="Voltage", font=('Helvetica', 12, "bold"))
-        self.voltage_label.grid(row=1, column=1, padx=10, pady=10)
-        self.current_label = ttk.Label(self, text="Current", font=('Helvetica', 12, "bold"))
-        self.current_label.grid(row=1, column=2, padx=10, pady=10)
+        self.device_control_title.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
         start, end = parameter_bounds.HMP_LASER_CURRENT_BOUNDS
-        self.laser_checkbox = ttk.Checkbutton(self, text="Laser:", variable=self.laser_is_checked)
+        self.laser_checkbox = ttk.Checkbutton(self, text="Laser[current]:", variable=self.laser_is_checked)
         self.laser_checkbox.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-        self.laser_voltage_control = ttk.Spinbox(self, from_=2, to=5, increment=0.1, format="%.1f", textvariable=self.laser_voltage, width=10, state="readonly")
-        self.laser_voltage_control.grid(row=2, column=1, padx=10, pady=10)
-        self.laser_current_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f", textvariable=self.laser_current, width=10)
-        self.laser_current_control.grid(row=2, column=2, padx=10, pady=10)
+        self.laser_current_control = ttk.Spinbox(self, from_=start, to=end, increment=0.01, format="%.2f A", textvariable=self.laser_current, width=10, state="readonly")
+        self.laser_current_control.grid(row=2, column=1, padx=10, pady=10)
 
         start, end = parameter_bounds.HMP_HALOGEN_VOLTAGE_BOUNDS
-        self.halogen_checkbox = ttk.Checkbutton(self, text="Halogen:", variable=self.halogen_is_checked)
+        self.halogen_checkbox = ttk.Checkbutton(self, text="Halogen[voltage]:", variable=self.halogen_is_checked)
         self.halogen_checkbox.grid(row=3, column=0, padx=10, pady=10, sticky="w")
-        self.halogen_voltage_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f", textvariable=self.halogen_voltage, width=10)
+        self.halogen_voltage_control = ttk.Spinbox(self, from_=start, to=end, increment=0.1, format="%.1f V", textvariable=self.halogen_voltage, width=10, state="readonly")
         self.halogen_voltage_control.grid(row=3, column=1, padx=10, pady=10)
-        self.halogen_current_control = ttk.Spinbox(self, from_=0, to=10, increment=0.1, format="%.1f", textvariable=self.halogen_current, width=10, state="readonly")
-        self.halogen_current_control.grid(row=3, column=2, padx=10, pady=10)
 
 
 class PidControl(ttk.Frame):
     def __init__(self, master, app):
         super().__init__(master)
-        self.active_lock = False
+        self.active_lock = tk.BooleanVar(value=False)
         self.kp = tk.DoubleVar()
         self.ki = tk.DoubleVar()
         self.kd = tk.DoubleVar()
@@ -300,15 +287,8 @@ class PidControl(ttk.Frame):
         self.lock_offset_control = ttk.Spinbox(self, from_=start, to=end, increment=0.5, format="%.1f", textvariable=self.lock_offset)
         self.lock_offset_control.grid(row=2, column=3, columnspan=3, padx=10, pady=10)
 
-        self.start_lock_button = ttk.Button(self, text="Start Lock", command=self.toggle_start, width=20)
+        self.start_lock_button = ttk.Checkbutton(self, text="Start Lock", style='ToggleButton', variable=self.active_lock, width=20)
         self.start_lock_button.grid(row=3, column=0, columnspan=6, padx=10, pady=10)
-
-    def toggle_start(self):
-        self.active_lock = not self.active_lock
-        if self.active_lock:
-            self.start_lock_button.config(text="Stop Lock")
-        else:
-            self.start_lock_button.config(text="Start Lock")
 
 
 class RedPitayaControlPanel(tk.Toplevel):
@@ -373,7 +353,7 @@ class RedPitayaControlPanel(tk.Toplevel):
 
         self.cancel_button = ttk.Button(self.frame, text="Cancel", command=self.close)
         self.cancel_button.grid(row=6, column=1, padx=10, pady=10, sticky="we")
-        self.update_button = ttk.Button(self.frame, text="Update", command=self.update)
+        self.update_button = ttk.Button(self.frame, text="Update", style='Accent.TButton', command=self.update)
         self.update_button.grid(row=6, column=2, padx=10, pady=10, sticky="we")
 
     def update(self):
@@ -381,10 +361,3 @@ class RedPitayaControlPanel(tk.Toplevel):
 
     def close(self):
         self.cancel_callback()
-
-
-if __name__ == '__main__':
-    root = tk.Tk()
-
-    RedPitayaControlPanel(root, None)
-    root.mainloop()
