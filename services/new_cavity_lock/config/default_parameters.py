@@ -6,7 +6,7 @@ CH2_OFFSET = 0.0
 CH1_VOLTAGE = 0.04
 CH2_VOLTAGE = 0.04
 TRIGGER_LEVEL = 1.0
-TRIGGER_DELAY = 0.1
+TRIGGER_DELAY = 0.0
 
 # -------------------- PID PARAMETERS -------------------- #
 PID_KP = 1.0

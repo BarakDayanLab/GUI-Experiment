@@ -1,3 +1,5 @@
+import time
+
 from pynput.keyboard import GlobalHotKeys
 from .model import CavityLockModel
 from .config import default_parameters
@@ -20,10 +22,11 @@ class CavityLockController:
     def start(self):
         self.model.start(self)
         self.model.started_event.wait()
+        time.sleep(1)
+        self.app.main_window.show()
         self.update_all_devices()
         self.calibrate_peaks_params()
 
-        self.app.main_window.show()
         sys.exit(self.app.exec())
 
     def stop(self, event=None):
@@ -43,19 +46,19 @@ class CavityLockController:
         else:
             self.app.general_controls.red_pitaya_panel.setEnabled(False)
 
-        # self.update_lock_offset()
+        self.update_lock_offset()
 
         if self.model.hmp4040 is None:
             self.app.disable_hmp()
-        # else:
-        #     self.update_kp()
-        #     self.update_ki()
-        #     self.update_kd()
-        #
-        #     self.update_laser_is_checked(self.app.hmp_control.laser_checkbox.isChecked())
-        #     self.update_laser_current()
-        #     self.update_halogen_is_checked(self.app.hmp_control.halogen_checkbox.isChecked())
-        #     self.update_halogen_voltage()
+        else:
+            self.update_kp()
+            self.update_ki()
+            self.update_kd()
+
+            self.update_laser_is_checked(self.app.hmp_control.laser_checkbox.isChecked())
+            self.update_laser_current()
+            self.update_halogen_is_checked(self.app.hmp_control.halogen_checkbox.isChecked())
+            self.update_halogen_voltage()
 
     # ------------------ BIND ------------------ #
     # noinspection PyUnresolvedReferences
@@ -124,7 +127,7 @@ class CavityLockController:
         self.model.set_laser_current(self.app.hmp_control.laser_current_control.value())
 
     def update_laser_view(self, current):
-        self.app.hmp_control.laser_current_control.setValue(current)
+        self.app.hmp_control.laser_current_control.setValue(float(current))
 
     def update_halogen_is_checked(self, *args):
         is_checked = self.app.hmp_control.halogen_checkbox.isChecked()

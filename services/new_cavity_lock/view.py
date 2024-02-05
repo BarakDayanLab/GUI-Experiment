@@ -34,14 +34,11 @@ class App(QtWidgets.QApplication):
         self.general_controls.red_pitaya_panel.clicked.connect(self.activate_red_pitaya_panel_button)
         self.red_pitaya_params = self.get_default_red_pitaya_parameters()
 
-    def start(self):
         self.set_default_pid_parameters()
         self.set_default_hmp_parameters()
-        self.main_window.show()
 
-    def closeEvent(self, event):
-        self.controller.stop()
-        event.accept()
+    def start(self):
+        self.main_window.show()
 
     # ------------------ PLOTS ------------------ #
 
@@ -78,7 +75,7 @@ class App(QtWidgets.QApplication):
     # ------------------ RED PITAYA ------------------ #
 
     def activate_red_pitaya_panel_button(self):
-        self.red_pitaya_popup = RedPitayaControlPanel(self, self.update_red_pitaya_parameters)
+        self.red_pitaya_popup = RedPitayaControlPanel(self.red_pitaya_params, self.update_red_pitaya_parameters)
         self.red_pitaya_popup.setModal(True)
         self.red_pitaya_popup.show()
 
@@ -87,9 +84,10 @@ class App(QtWidgets.QApplication):
         self.red_pitaya_params["offset_2"] = self.red_pitaya_popup.offset_control_2.value()
         self.red_pitaya_params["voltage_1"] = self.red_pitaya_popup.voltage_control_1.value()
         self.red_pitaya_params["voltage_2"] = self.red_pitaya_popup.voltage_control_2.value()
-        self.red_pitaya_params["trigger_1"] = self.red_pitaya_popup.trigger_control_1.value()
-        self.red_pitaya_params["trigger_2"] = self.red_pitaya_popup.trigger_control_2.value()
+        self.red_pitaya_params["trigger_level"] = self.red_pitaya_popup.trigger_control_1.value()
+        self.red_pitaya_params["trigger_delay"] = self.red_pitaya_popup.trigger_control_2.value()
         self.red_pitaya_popup.close()
+        self.red_pitaya_popup = None
         self.controller.update_red_pitaya_parameters(self.red_pitaya_params)
 
     # ------------------ DEFAULTS ------------------ #
@@ -100,8 +98,8 @@ class App(QtWidgets.QApplication):
                 "offset_2": default_parameters.CH2_OFFSET,
                 "voltage_1": default_parameters.CH1_VOLTAGE,
                 "voltage_2": default_parameters.CH2_VOLTAGE,
-                "trigger_1": default_parameters.TRIGGER_DELAY,
-                "trigger_2": default_parameters.TRIGGER_LEVEL}
+                "trigger_level": default_parameters.TRIGGER_LEVEL,
+                "trigger_delay": default_parameters.TRIGGER_DELAY}
 
     def set_default_pid_parameters(self):
         self.pid_control.kp_control.setValue(default_parameters.PID_KP)
@@ -110,7 +108,9 @@ class App(QtWidgets.QApplication):
         self.pid_control.lock_offset_control.setValue(default_parameters.PID_OFFSET)
 
     def set_default_hmp_parameters(self):
+        self.hmp_control.laser_checkbox.setChecked(default_parameters.HMP_LASER_IS_ON)
         self.hmp_control.laser_current_control.setValue(default_parameters.HMP_LASER_CURRENT)
+        self.hmp_control.halogen_checkbox.setChecked(default_parameters.HMP_HALOGEN_IS_ON)
         self.hmp_control.halogen_voltage_control.setValue(default_parameters.HMP_HALOGEN_VOLTAGE)
 
     def disable_hmp(self):
@@ -143,6 +143,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.buttons_container = SidePanel(self.main_container)
         self.layout.addWidget(self.buttons_container)
+
+    def closeEvent(self, event):
+        self.app.controller.stop()
+        event.accept()
 
 
 class MatplotlibContainer(QtWidgets.QWidget):
@@ -411,17 +415,11 @@ class PidControl(QtWidgets.QWidget):
 
 
 class RedPitayaControlPanel(QtWidgets.QDialog):
-    def __init__(self, master, update_callback):
-        super().__init__(master)
-        self.master = master
-
+    def __init__(self, params, update_callback):
+        super().__init__()
+        self.params = params
         self.setWindowTitle("Red Pitaya Control Panel")
         self.layout = QtWidgets.QGridLayout(self)
-
-        buttons = QtWidgets.QDialogButtonBox.StandardButton.Cancel | QtWidgets.QDialogButtonBox.StandardButton.Ok
-        self.button_box = QtWidgets.QDialogButtonBox(buttons)
-        # noinspection PyUnresolvedReferences
-        self.button_box.accepted.connect(update_callback)
 
         # ------------------ ROW 0 ------------------ #
         self.channel_1_label = QtWidgets.QLabel("Channel 1", self)
@@ -437,11 +435,13 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.offset_control_1 = QtWidgets.QDoubleSpinBox(self)
         self.offset_control_1.setRange(start, end)
         self.offset_control_1.setSingleStep(0.1)
+        self.offset_control_1.setValue(params["offset_1"])
         self.layout.addWidget(self.offset_control_1, 1, 1)
 
         self.offset_control_2 = QtWidgets.QDoubleSpinBox(self)
         self.offset_control_2.setRange(start, end)
         self.offset_control_2.setSingleStep(0.1)
+        self.offset_control_2.setValue(params["offset_2"])
         self.layout.addWidget(self.offset_control_2, 1, 2)
 
         # ------------------ ROW 2 ------------------ #
@@ -452,11 +452,13 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.voltage_control_1 = QtWidgets.QDoubleSpinBox(self)
         self.voltage_control_1.setRange(start, end)
         self.voltage_control_1.setSingleStep(0.1)
+        self.voltage_control_1.setValue(params["voltage_1"])
         self.layout.addWidget(self.voltage_control_1, 2, 1)
 
         self.voltage_control_2 = QtWidgets.QDoubleSpinBox(self)
         self.voltage_control_2.setRange(start, end)
         self.voltage_control_2.setSingleStep(0.1)
+        self.voltage_control_2.setValue(params["voltage_2"])
         self.layout.addWidget(self.voltage_control_2, 2, 2)
 
         # ------------------ ROW 3 ------------------ #
@@ -473,15 +475,27 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.trigger_control_1 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_1.setRange(start, end)
         self.trigger_control_1.setSingleStep(0.1)
+        self.trigger_control_1.setValue(params["trigger_level"])
         self.layout.addWidget(self.trigger_control_1, 4, 1)
 
         self.trigger_control_2 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_2.setRange(start, end)
         self.trigger_control_2.setSingleStep(0.1)
+        self.trigger_control_2.setValue(params["trigger_delay"])
         self.layout.addWidget(self.trigger_control_2, 4, 2)
 
         # ------------------ ROW 5 ------------------ #
-        self.update_button = QtWidgets.QPushButton("Update", self)
-        self.layout.addWidget(self.update_button, 5, 2)
-        self.cancel_button = QtWidgets.QPushButton("Cancel", self)
-        self.layout.addWidget(self.cancel_button, 5, 1)
+        buttons = QtWidgets.QDialogButtonBox.StandardButton.Cancel | QtWidgets.QDialogButtonBox.StandardButton.Ok
+        self.button_box = QtWidgets.QDialogButtonBox(self)
+        self.button_box.setStandardButtons(buttons)
+        self.layout.addWidget(self.button_box, 5, 0, 1, 3)
+        # noinspection PyUnresolvedReferences
+        self.button_box.accepted.connect(update_callback)
+        self.button_box.rejected.connect(self.close)
+        # self.update_button = QtWidgets.QPushButton("Update", self)
+        # self.layout.addWidget(self.update_button, 5, 2)
+        # self.cancel_button = QtWidgets.QPushButton("Cancel", self)
+        # self.layout.addWidget(self.cancel_button, 5, 1)
+        #
+        # self.button_box.addButton(self.update_button, QtWidgets.QDialogButtonBox.AcceptRole)
+        # self.button_box.addButton(self.cancel_button, QtWidgets.QDialogButtonBox.RejectRole)
