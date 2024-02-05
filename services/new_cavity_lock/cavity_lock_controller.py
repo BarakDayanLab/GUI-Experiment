@@ -1,6 +1,6 @@
 from pynput.keyboard import GlobalHotKeys
 from .cavity_lock_view import App
-from .cavity_lock_model import CavityLockModel
+from .model import CavityLockModel
 from .config import default_parameters
 from services.resonance_fit.data_loader import DataLoaderRedPitaya
 import sys
@@ -11,10 +11,10 @@ class CavityLockController:
         self.app = App(self)
         self.model = model
 
-        hotkeys = {"<ctrl>+p": self.app.toggle_pause, }
-                   # "<ctrl>+q": self.stop, }
-        self.keyboard_listener = GlobalHotKeys(hotkeys)
-        self.keyboard_listener.start()
+        # hotkeys = {"<ctrl>+p": self.app.toggle_pause, }
+        #            # "<ctrl>+q": self.stop, }
+        # self.keyboard_listener = GlobalHotKeys(hotkeys)
+        # self.keyboard_listener.start()
 
         self.bind_buttons()
         self.bind_pid()

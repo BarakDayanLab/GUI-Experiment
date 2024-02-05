@@ -56,8 +56,8 @@ class CavityLockModel:
         output = self.pid(self.resonance_fit.lock_error)
         if not self.pid.auto_mode:
             return
-        current = self.set_laser_current(output)
-        print(output)
+        self.controller.set_laser_current(output)
+        self.controller.update_laser_view(output)
 
     # ------------------ RESONANCE FIT ------------------ #
 
