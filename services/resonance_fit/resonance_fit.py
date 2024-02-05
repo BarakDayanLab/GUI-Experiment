@@ -118,7 +118,7 @@ class ResonanceFit:
         score = self.r2_score(self.cavity.transmission_spectrum[self.current_relevant_area],
                               self.cavity.transmission_spectrum_func(self.relevant_x_axis))
         if score < 0.6:
-            return True
+            return False
 
         return True
 

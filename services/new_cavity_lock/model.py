@@ -44,6 +44,11 @@ class CavityLockModel:
 
     def on_data(self, data):
         self.lock.acquire()
+
+        if data[1].std() < 6e-3:
+            self.lock.release()
+            return
+
         if not self.started_event.is_set():
             self.started_event.set()
 
@@ -56,7 +61,6 @@ class CavityLockModel:
         output = self.pid(self.resonance_fit.lock_error)
         if not self.pid.auto_mode:
             return
-        print(output)
         self.set_laser_current(output)
         self.controller.update_laser_view(output)
 

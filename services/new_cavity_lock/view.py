@@ -419,6 +419,7 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         super().__init__()
         self.params = params
         self.setWindowTitle("Red Pitaya Control Panel")
+        self.setGeometry(500, 500, 600, 300)
         self.layout = QtWidgets.QGridLayout(self)
 
         # ------------------ ROW 0 ------------------ #

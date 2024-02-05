@@ -8,10 +8,11 @@ CH2_VOLTAGE = 0.04
 TRIGGER_LEVEL = 1.0
 TRIGGER_DELAY = 0.0
 
+
 # -------------------- PID PARAMETERS -------------------- #
-PID_KP = 1.0
-PID_KI = 0.0
-PID_KD = 0.0
+PID_KP = 0.3
+PID_KI = 0.6
+PID_KD = 0.1
 PID_OFFSET = 0.0
 
 # -------------------- HMP PARAMETERS -------------------- #

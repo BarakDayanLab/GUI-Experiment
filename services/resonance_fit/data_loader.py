@@ -2,6 +2,7 @@ from .scope_connection import Scope, FakeScope
 from functions.RedPitayaWebsocket import Redpitaya
 from threading import Thread
 from multiprocessing import Queue
+import numpy as np
 import time
 
 
@@ -108,7 +109,7 @@ class DataLoaderRedPitaya(DataLoader):
             self.red_pitaya.set_inverseChannel(False, 2)
             self.configure_input_channels()
 
-        self.on_data_callback(data)
+        self.on_data_callback(np.array(data))
 
     def configure_input_channels(self):
         # Set channel 1

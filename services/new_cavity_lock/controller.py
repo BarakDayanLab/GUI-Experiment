@@ -106,13 +106,13 @@ class CavityLockController:
         self.app.hmp_control.laser_checkbox.setDisabled(is_active)
 
     def update_kp(self, event=None):
-        self.model.set_kp(-self.app.pid_control.kp_control.value()/100)
+        self.model.set_kp(-self.app.pid_control.kp_control.value()/1000)
 
     def update_ki(self, event=None):
-        self.model.set_ki(-self.app.pid_control.ki_control.value()/100)
+        self.model.set_ki(-self.app.pid_control.ki_control.value()/1000)
 
     def update_kd(self, event=None):
-        self.model.set_kd(-self.app.pid_control.kd_control.value()/100)
+        self.model.set_kd(-self.app.pid_control.kd_control.value()/1000)
 
     def update_lock_offset(self, event=None):
         self.model.set_lock_offset(self.app.pid_control.lock_offset_control.value())
@@ -127,7 +127,7 @@ class CavityLockController:
         self.model.set_laser_current(self.app.hmp_control.laser_current_control.value())
 
     def update_laser_view(self, current):
-        self.app.hmp_control.laser_current_control.setValue(float(current))
+        self.app.hmp_control.laser_current_control.setValue(current)
 
     def update_halogen_is_checked(self, *args):
         is_checked = self.app.hmp_control.halogen_checkbox.isChecked()
