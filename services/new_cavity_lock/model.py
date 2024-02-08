@@ -75,6 +75,7 @@ class CavityLockModel:
         self.data_loader.stop()
         self.save_interval.cancel()
         self.socket_interval.cancel()
+        self.socket.close()
 
     def connect_socket(self):
         try:
@@ -85,11 +86,12 @@ class CavityLockModel:
     # ------------------ DATA ------------------ #
     @use_lock
     def on_data(self, data):
-        if data[1].std() < 6e-3:
-            return
-
-        self.last_fit_success = self.resonance_fit.fit_data(*data)
-        self.last_fit_success and self.update_pid()
+        self.resonance_fit.set_data(*data)
+        if data[1].std() >= 6e-3:
+            self.last_fit_success = self.resonance_fit.fit_data()
+            self.last_fit_success and self.update_pid()
+        else:
+            self.last_fit_success = False
 
         if not self.started_event.is_set():
             self.started_event.set()
@@ -224,10 +226,13 @@ class CavityLockModel:
 
     @use_lock
     def send_data_socket(self):
-        fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
+        # if not self.last_fit_success:
+        #     return
+        # fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
+        fit_dict = dict(k_ex=0, lock_error=0)
         message = json.dumps(fit_dict)
         try:
             self.socket.send(message.encode())
         except OSError as e:
-            print(e)
+            self.socket.close()
             Thread(target=self.connect_socket).start()

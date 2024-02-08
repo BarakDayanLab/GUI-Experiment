@@ -1,6 +1,6 @@
 
 # ---------------- MAIN EXP SOCKET ---------------- #
-SOCKET_IP = "169.254.191.144"
+SOCKET_IP = "132.77.55.172"
 SOCKET_PORT = 5050
 SEND_DATA_INTERVAL = 3
 

@@ -124,12 +124,13 @@ class ResonanceFit:
 
     # ------------------ READ DATA ------------------ #
 
-    def fit_data(self, rubidium_lines, transmission_spectrum):
+    def set_data(self, rubidium_lines, transmission_spectrum):
         self.rubidium_lines.data = self.normalize_data(rubidium_lines)
         self.cavity.transmission_spectrum = self.normalize_data(transmission_spectrum)
         if len(self.x_axis) != self.rubidium_lines.num_points:
             self.x_axis = np.arange(self.rubidium_lines.num_points)
 
+    def fit_data(self):
         if not self.calibrate_x_axis():
             return False
         if not self.fit_transmission_spectrum():
