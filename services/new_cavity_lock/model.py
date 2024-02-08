@@ -1,4 +1,5 @@
 import os
+import struct
 import time
 import json
 import socket
@@ -46,7 +47,6 @@ class CavityLockModel:
 
         self.controller = None
         self.last_fit_success = False
-        self.interval = None
 
         self.lock = Lock()
         self.started_event = Event()
@@ -55,12 +55,8 @@ class CavityLockModel:
         self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
 
         if self.use_socket:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5)
-            hostname = socket.gethostname()
-            my_ip_address = socket.gethostbyname(hostname)
-            print(f'Socket client running on host {hostname}. My IP: {my_ip_address}')
-            self.connect_socket()
+            self.socket = None
+            self.initialize_socket()
 
     # ------------------ GENERAL ------------------ #
 
@@ -69,7 +65,7 @@ class CavityLockModel:
         self.data_loader.start()
         self.started_event.wait()
         self.save and self.save_interval.start()
-        self.use_socket and self.socket_interval.start()
+        Thread(target=self.connect_socket).start()
 
     def stop(self):
         self.data_loader.stop()
@@ -77,11 +73,32 @@ class CavityLockModel:
         self.socket_interval.cancel()
         self.socket.close()
 
+    def initialize_socket(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(5)
+
+    def reconnect_socket(self):
+        self.socket_interval.cancel()
+        self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
+        print("connection to socket server lost. Trying to reconnect...")
+
+        self.socket.close()
+        self.initialize_socket()
+        Thread(target=self.connect_socket).start()
+
     def connect_socket(self):
         try:
             self.socket.connect((cfg.SOCKET_IP, cfg.SOCKET_PORT))
+            self.use_socket and self.socket_interval.start()
+
+            hostname = socket.gethostname()
+            my_ip_address = socket.gethostbyname(hostname)
+            print(f'Socket client running on host {hostname}. My IP: {my_ip_address}')
         except OSError as e:
-            print(e)
+            time.sleep(3)
+            self.socket.close()
+            self.initialize_socket()
+            self.connect_socket()
 
     # ------------------ DATA ------------------ #
     @use_lock
@@ -226,13 +243,14 @@ class CavityLockModel:
 
     @use_lock
     def send_data_socket(self):
-        # if not self.last_fit_success:
-        #     return
-        # fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
-        fit_dict = dict(k_ex=0, lock_error=0)
+        if not self.last_fit_success:
+            return
+        fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
         message = json.dumps(fit_dict)
+        message = message.encode()
+        data_size = len(message)
+        struct_data = struct.pack('!I', data_size) + message
         try:
-            self.socket.send(message.encode())
+            res = self.socket.send(struct_data)
         except OSError as e:
-            self.socket.close()
-            Thread(target=self.connect_socket).start()
+            self.reconnect_socket()
