@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.animation as animation
-from .config import parameter_bounds
+from services.new_cavity_lock.config import parameter_bounds
 matplotlib.use('TkAgg')
 
 

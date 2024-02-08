@@ -21,8 +21,6 @@ class CavityLockController:
 
     def start(self):
         self.model.start(self)
-        self.model.started_event.wait()
-        time.sleep(1)
         self.app.main_window.show()
         self.update_all_devices()
         self.calibrate_peaks_params()
@@ -106,13 +104,13 @@ class CavityLockController:
         self.app.hmp_control.laser_checkbox.setDisabled(is_active)
 
     def update_kp(self, event=None):
-        self.model.set_kp(-self.app.pid_control.kp_control.value()/1000)
+        self.model.set_kp(-self.app.pid_control.kp_control.value())
 
     def update_ki(self, event=None):
-        self.model.set_ki(-self.app.pid_control.ki_control.value()/1000)
+        self.model.set_ki(-self.app.pid_control.ki_control.value())
 
     def update_kd(self, event=None):
-        self.model.set_kd(-self.app.pid_control.kd_control.value()/1000)
+        self.model.set_kd(-self.app.pid_control.kd_control.value())
 
     def update_lock_offset(self, event=None):
         self.model.set_lock_offset(self.app.pid_control.lock_offset_control.value())

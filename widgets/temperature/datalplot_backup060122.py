@@ -298,7 +298,7 @@ class PlotWindow(QDialog):
         ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=1, rowspan=2)
         ax4 = plt.subplot2grid((2, 2), (0, 0), colspan=1, rowspan=1)
 
-        # discards the old graph
+        # discards the tkinter_version graph
         # ax.hold(False) # deprecated, see above
 
         # plot data
@@ -340,7 +340,7 @@ class PlotWindow(QDialog):
         ax3 = plt.subplot2grid((2, 2), (1, 0), colspan=1, rowspan=2)
         ax4 = plt.subplot2grid((2, 2), (0, 0), colspan=1, rowspan=1)
 
-        # discards the old graph
+        # discards the tkinter_version graph
         # ax.hold(False) # deprecated, see above
 
         # plot data

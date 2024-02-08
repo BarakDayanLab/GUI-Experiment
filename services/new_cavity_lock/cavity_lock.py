@@ -11,12 +11,12 @@ are independent of each other and can be changed without affecting the other.
 
 
 if __name__ == '__main__':
-    cavity = CavityKex(k_i=3.6, h=3)
+    cavity = CavityKex(k_i=3.6, h=0.6)
     resonance_fit = ResonanceFit(cavity)
-    # data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 3}, scope_ip=None)
-    data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
+    data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 3}, scope_ip=None)
+    # data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
 
-    model = CavityLockModel(data_loader, resonance_fit)
+    model = CavityLockModel(data_loader, resonance_fit, save=False, use_socket=True)
 
     controller = CavityLockController(model)
     controller.start()

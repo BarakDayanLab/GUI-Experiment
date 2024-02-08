@@ -1,19 +1,38 @@
 import os
 import time
+import json
+import socket
+import functools
 import numpy as np
 from simple_pid import PID
-from sched import scheduler
-from threading import Lock, Event
+from threading import Lock, Event, Timer, Thread
 from functions.HMP4040Control import HMP4040Visa
-from .config import default_parameters, parameter_bounds
+from .config import default_parameters, parameter_bounds, general as cfg
+
+
+class SetInterval(Timer):
+    def run(self):
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
+
+
+def use_lock(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        self.lock.acquire()
+        result = func(self, *args, **kwargs)
+        self.lock.release()
+        return result
+    return wrapper
 
 
 class CavityLockModel:
-    def __init__(self, data_loader, resonance_fit, save_folder=None):
+    def __init__(self, data_loader, resonance_fit, save=False, use_socket=False):
         self.resonance_fit = resonance_fit
-        self.save_folder = save_folder
         self.data_loader = data_loader
         self.data_loader.on_data_callback = self.on_data
+        self.save = save
+        self.use_socket = use_socket
 
         try:
             # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
@@ -27,35 +46,53 @@ class CavityLockModel:
 
         self.controller = None
         self.last_fit_success = False
+        self.interval = None
 
         self.lock = Lock()
         self.started_event = Event()
 
-        self.scheduler = scheduler(time.time, time.sleep)
-        self.save_folder and self.scheduler.enter(5, 1, self.save_spectrum)
-        self.scheduler.run(blocking=False)
+        self.save_interval = SetInterval(cfg.SAVE_INTERVAL, self.save_spectrum)
+        self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
+
+        if self.use_socket:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(5)
+            hostname = socket.gethostname()
+            my_ip_address = socket.gethostbyname(hostname)
+            print(f'Socket client running on host {hostname}. My IP: {my_ip_address}')
+            self.connect_socket()
+
+    # ------------------ GENERAL ------------------ #
 
     def start(self, controller):
         self.controller = controller
         self.data_loader.start()
+        self.started_event.wait()
+        self.save and self.save_interval.start()
+        self.use_socket and self.socket_interval.start()
 
     def stop(self):
         self.data_loader.stop()
+        self.save_interval.cancel()
+        self.socket_interval.cancel()
 
+    def connect_socket(self):
+        try:
+            self.socket.connect((cfg.SOCKET_IP, cfg.SOCKET_PORT))
+        except OSError as e:
+            print(e)
+
+    # ------------------ DATA ------------------ #
+    @use_lock
     def on_data(self, data):
-        self.lock.acquire()
-
         if data[1].std() < 6e-3:
-            self.lock.release()
             return
+
+        self.last_fit_success = self.resonance_fit.fit_data(*data)
+        self.last_fit_success and self.update_pid()
 
         if not self.started_event.is_set():
             self.started_event.set()
-
-        self.last_fit_success = self.resonance_fit.fit_data(*data)
-
-        self.lock.release()
-        self.last_fit_success and self.update_pid()
 
     def update_pid(self):
         output = self.pid(self.resonance_fit.lock_error)
@@ -65,28 +102,24 @@ class CavityLockModel:
         self.controller.update_laser_view(output)
 
     # ------------------ RESONANCE FIT ------------------ #
-
+    @use_lock
     def calibrate_peaks_params(self, points):
-        self.lock.acquire()
         num_idx_in_peak = np.round(np.abs(points[0][0] - points[1][0]))
         self.resonance_fit.calibrate_peaks_params(num_idx_in_peak)
-        self.lock.release()
 
+    @use_lock
     def set_selected_peak(self, point):
-        self.lock.acquire()
         distances = np.sum((self.resonance_fit.rubidium_peaks - point) ** 2, axis=1)
         self.resonance_fit.lock_idx = np.argmin(distances)
-        self.lock.release()
 
+    @use_lock
     def get_current_fit(self):
-        self.lock.acquire()
         x_axis = self.resonance_fit.x_axis.copy()
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
         transmission_spectrum = self.resonance_fit.cavity.transmission_spectrum.copy()
         data = (x_axis, rubidium_lines, transmission_spectrum)
 
         if not self.last_fit_success:
-            self.lock.release()
             return data, None
 
         lock_error = self.resonance_fit.lock_error
@@ -101,13 +134,11 @@ class CavityLockModel:
         transmission_fit = self.resonance_fit.transmission_fit.copy()
 
         fit = (relevant_x_axis, rubidium_peaks, selected_peak, lorentzian_center, transmission_fit, title)
-        self.lock.release()
         return data, fit
 
+    @use_lock
     def get_rubidium_lines(self):
-        self.lock.acquire()
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
-        self.lock.release()
         return rubidium_lines
 
     # ------------------ DATA LOADER ------------------ #
@@ -117,31 +148,26 @@ class CavityLockModel:
 
     # ------------------ PID ------------------ #
 
+    @use_lock
     def toggle_pid_lock(self, current_value):
-        self.lock.acquire()
         self.pid.set_auto_mode(not self.pid.auto_mode, current_value)
-        self.lock.release()
         return self.pid.auto_mode
 
+    @use_lock
     def set_kp(self, kp):
-        self.lock.acquire()
-        self.pid.tunings = (kp, self.pid.tunings[1], self.pid.tunings[2])
-        self.lock.release()
+        self.pid.tunings = (kp, self.pid.tunings[1], self.pid.tunings[2]/cfg.PID_DIVISION)
 
+    @use_lock
     def set_ki(self, ki):
-        self.lock.acquire()
-        self.pid.tunings = (self.pid.tunings[0], ki, self.pid.tunings[2])
-        self.lock.release()
+        self.pid.tunings = (self.pid.tunings[0], ki, self.pid.tunings[2]/cfg.PID_DIVISION)
 
+    @use_lock
     def set_kd(self, kd):
-        self.lock.acquire()
-        self.pid.tunings = (self.pid.tunings[0], self.pid.tunings[1], kd)
-        self.lock.release()
+        self.pid.tunings = (self.pid.tunings[0], self.pid.tunings[1], kd/cfg.PID_DIVISION)
 
+    @use_lock
     def set_lock_offset(self, lock_offset):
-        self.lock.acquire()
         self.resonance_fit.lock_offset = lock_offset
-        self.lock.release()
 
     # ------------------ HMP ------------------ #
 
@@ -174,21 +200,34 @@ class CavityLockModel:
         return self.hmp4040.getVoltage()
 
     # ------------------ SAVE DATA ------------------ #
-
-    def get_save_paths(self):
+    @staticmethod
+    def get_save_paths():
         date = time.strftime("%Y%m%d")
         hours = time.strftime("%H%M%S")
 
+        folder_path = os.path.join(cfg.FOLDER_PATH, date)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
         transmission_filename = f"{date}-{hours}_cavity_spectrum.npy"
-        transmission_path = os.path.join(self.save_folder, date, transmission_filename)
+        transmission_path = os.path.join(folder_path, transmission_filename)
 
         rubidium_filename = f"{date}-{hours}_rubidium_spectrum.npy"
-        rubidium_path = os.path.join(self.save_folder, date, rubidium_filename)
+        rubidium_path = os.path.join(folder_path, rubidium_filename)
         return transmission_path, rubidium_path
 
+    @use_lock
     def save_spectrum(self):
-        self.lock.acquire()
         transmission_path, rubidium_path = self.get_save_paths()
         np.save(transmission_path, self.resonance_fit.cavity.transmission_spectrum)
         np.save(rubidium_path, self.resonance_fit.rubidium_lines.data)
-        self.lock.release()
+
+    @use_lock
+    def send_data_socket(self):
+        fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
+        message = json.dumps(fit_dict)
+        try:
+            self.socket.send(message.encode())
+        except OSError as e:
+            print(e)
+            Thread(target=self.connect_socket).start()
