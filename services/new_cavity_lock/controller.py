@@ -1,3 +1,5 @@
+import time
+
 from .model import CavityLockModel
 from services.resonance_fit.data_loader import DataLoaderRedPitaya
 import sys
@@ -17,10 +19,10 @@ class CavityLockController:
 
     def start(self):
         self.model.start(self)
-        self.app.main_window.show()
         self.update_all_devices()
         self.calibrate_peaks_params()
 
+        self.app.main_window.showMaximized()
         sys.exit(self.app.exec())
 
     def stop(self, event=None):

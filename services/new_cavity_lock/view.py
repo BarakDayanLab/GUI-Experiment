@@ -137,7 +137,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Cavity Lock")
         self.setGeometry(100, 100, 1600, 800)
-        self.showMaximized()
 
         self.layout = QtWidgets.QHBoxLayout(self.main_container)
 
