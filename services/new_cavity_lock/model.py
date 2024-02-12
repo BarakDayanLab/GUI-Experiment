@@ -1,10 +1,8 @@
 import os
-import struct
 import time
-import json
-import socket
 import functools
 import numpy as np
+from .socket_client import SocketClient
 from simple_pid import PID
 from threading import Lock, Event, Timer, Thread
 from functions.HMP4040Control import HMP4040Visa
@@ -54,9 +52,7 @@ class CavityLockModel:
         self.save_interval = SetInterval(cfg.SAVE_INTERVAL, self.save_spectrum)
         self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
 
-        if self.use_socket:
-            self.socket = None
-            self.initialize_socket()
+        self.socket = SocketClient(cfg.SOCKET_IP, cfg.SOCKET_PORT, self.socket_connection_status)
 
     # ------------------ GENERAL ------------------ #
 
@@ -65,40 +61,16 @@ class CavityLockModel:
         self.data_loader.start()
         self.started_event.wait()
         self.save and self.save_interval.start()
-        Thread(target=self.connect_socket).start()
+        self.use_socket and self.socket.start()
 
     def stop(self):
-        self.data_loader.stop()
         self.save_interval.cancel()
         self.socket_interval.cancel()
-        self.socket.close()
+        self.data_loader.stop()
+        self.use_socket and self.socket.close()
 
-    def initialize_socket(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(5)
-
-    def reconnect_socket(self):
-        self.socket_interval.cancel()
-        self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
-        print("connection to socket server lost. Trying to reconnect...")
-
-        self.socket.close()
-        self.initialize_socket()
-        Thread(target=self.connect_socket).start()
-
-    def connect_socket(self):
-        try:
-            self.socket.connect((cfg.SOCKET_IP, cfg.SOCKET_PORT))
-            self.use_socket and self.socket_interval.start()
-
-            hostname = socket.gethostname()
-            my_ip_address = socket.gethostbyname(hostname)
-            print(f'Socket client running on host {hostname}. My IP: {my_ip_address}')
-        except OSError as e:
-            time.sleep(3)
-            self.socket.close()
-            self.initialize_socket()
-            self.connect_socket()
+        self.data_loader.join()
+        self.use_socket and self.socket.join()
 
     # ------------------ DATA ------------------ #
     @use_lock
@@ -218,6 +190,16 @@ class CavityLockModel:
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.getVoltage()
 
+    # ------------------ SOCKET ------------------ #
+    def socket_connection_status(self, is_connected):
+        if is_connected:
+            hostname, my_ip_address = self.socket.get_host_ip()
+            print(f'Socket client running on host {hostname}. IP: {my_ip_address}')
+        else:
+            print("connection to socket server lost. Trying to reconnect...")
+
+        self.controller.update_socket_connection_status(is_connected)
+
     # ------------------ SAVE DATA ------------------ #
     @staticmethod
     def get_save_paths():
@@ -246,11 +228,4 @@ class CavityLockModel:
         if not self.last_fit_success:
             return
         fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
-        message = json.dumps(fit_dict)
-        message = message.encode()
-        data_size = len(message)
-        struct_data = struct.pack('!I', data_size) + message
-        try:
-            res = self.socket.send(struct_data)
-        except OSError as e:
-            self.reconnect_socket()
+        self.socket.send_data(fit_dict)

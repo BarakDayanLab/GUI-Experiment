@@ -2,6 +2,7 @@ import sys
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 import matplotlib.animation as animation
@@ -29,6 +30,7 @@ class App(QtWidgets.QApplication):
         self.general_controls = self.main_window.buttons_container.general_controls
         self.pid_control = self.main_window.buttons_container.pid_control
         self.hmp_control = self.main_window.buttons_container.hmp_control
+        self.connection_panel = self.main_window.buttons_container.connection_panel
 
         # noinspection PyUnresolvedReferences
         self.general_controls.red_pitaya_panel.clicked.connect(self.activate_red_pitaya_panel_button)
@@ -75,7 +77,7 @@ class App(QtWidgets.QApplication):
     # ------------------ RED PITAYA ------------------ #
 
     def activate_red_pitaya_panel_button(self):
-        self.red_pitaya_popup = RedPitayaControlPanel(self.red_pitaya_params, self.update_red_pitaya_parameters)
+        self.red_pitaya_popup = RedPitayaControlPanel(self.main_window, self.red_pitaya_params, self.update_red_pitaya_parameters)
         self.red_pitaya_popup.setModal(True)
         self.red_pitaya_popup.show()
 
@@ -86,6 +88,7 @@ class App(QtWidgets.QApplication):
         self.red_pitaya_params["voltage_2"] = self.red_pitaya_popup.voltage_control_2.value()
         self.red_pitaya_params["trigger_level"] = self.red_pitaya_popup.trigger_control_1.value()
         self.red_pitaya_params["trigger_delay"] = self.red_pitaya_popup.trigger_control_2.value()
+        self.red_pitaya_params["time_scale"] = self.red_pitaya_popup.time_scale_control.value() * 1e-3
         self.red_pitaya_popup.close()
         self.red_pitaya_popup = None
         self.controller.update_red_pitaya_parameters(self.red_pitaya_params)
@@ -99,7 +102,8 @@ class App(QtWidgets.QApplication):
                 "voltage_1": default_parameters.CH1_VOLTAGE,
                 "voltage_2": default_parameters.CH2_VOLTAGE,
                 "trigger_level": default_parameters.TRIGGER_LEVEL,
-                "trigger_delay": default_parameters.TRIGGER_DELAY}
+                "trigger_delay": default_parameters.TRIGGER_DELAY,
+                "time_scale": default_parameters.TIME_SCALE}
 
     def set_default_pid_parameters(self):
         self.pid_control.kp_control.setValue(default_parameters.PID_KP)
@@ -200,7 +204,6 @@ class MatplotlibContainer(QtWidgets.QWidget):
         self.axes["rubidium"].grid()
 
         rubidium_artists = [self.axes["rubidium"].plot([], [])[0],
-                            self.axes["rubidium"].plot([], [])[0],
                             self.axes["rubidium"].scatter([], [], c='r'),
                             self.axes["rubidium"].scatter([], [], c='g')]
 
@@ -245,7 +248,6 @@ class MatplotlibContainer(QtWidgets.QWidget):
     def plot_rubidium(self, x_axis, rubidium_spectrum):
         lines = self.axes["rubidium"].get_lines()
         lines[0].set_data(x_axis, rubidium_spectrum)
-        # lines[1].set_data(x_axis, self.app.model.enhance_peaks(rubidium_spectrum))
         self.axes["rubidium"].set_xlim(x_axis[0], x_axis[-1])
 
     def plot_rubidium_peaks(self, rubidium_peaks, selected_peak):
@@ -305,6 +307,16 @@ class SidePanel(QtWidgets.QWidget):
 
         self.hmp_control = HmpControl(self)
         self.layout.addWidget(self.hmp_control)
+
+        separator = QtWidgets.QFrame(self)
+        separator.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        self.layout.addWidget(separator)
+
+        self.connection_panel = ConnectionPanel(self)
+        self.layout.addWidget(self.connection_panel)
+
+        # self.v_spacer = QtWidgets.QSpacerItem(self.width(), 450)
+        # self.layout.addItem(self.v_spacer)
 
     def disable_hmp(self):
         self.hmp_control.laser_checkbox.setEnabled(False)
@@ -414,12 +426,45 @@ class PidControl(QtWidgets.QWidget):
         self.layout.addWidget(self.start_lock_button, 3, 0, 1, 6)
 
 
+class ConnectionPanel(QtWidgets.QWidget):
+    def __init__(self, master):
+        super().__init__(master)
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.socket_label = QtWidgets.QLabel("Socket Connection:", self)
+        self.layout.addWidget(self.socket_label)
+
+        self.connection_led = self.get_connection_circle()
+        self.layout.addWidget(self.connection_led)
+
+        self.h_spacer = QtWidgets.QSpacerItem(150, 10)
+        self.layout.addItem(self.h_spacer)
+
+    def get_connection_circle(self):
+        scene = QtWidgets.QGraphicsScene()
+        circle_item = QtWidgets.QGraphicsEllipseItem(0, 0, 10, 10)
+        circle_item.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+        scene.addItem(circle_item)
+
+        view = QtWidgets.QGraphicsView(scene, self)
+        view.setStyleSheet("border: none;")
+        return view
+
+    def set_connection_led_status(self, is_connected):
+        color = QtGui.QColor(0, 255, 0) if is_connected else QtGui.QColor(255, 0, 0)
+        self.connection_led.scene().items()[0].setBrush(QtGui.QBrush(color))
+
+
 class RedPitayaControlPanel(QtWidgets.QDialog):
-    def __init__(self, params, update_callback):
-        super().__init__()
+    def __init__(self, master, params, update_callback):
+        super().__init__(master)
         self.params = params
         self.setWindowTitle("Red Pitaya Control Panel")
-        self.setGeometry(500, 500, 600, 300)
+        master_geometry = master.frameGeometry()
+        width = 600
+        height = 300
+        self.setGeometry(master_geometry.width()//2-width//2, master_geometry.height()//2-height//2, width, height)
         self.layout = QtWidgets.QGridLayout(self)
 
         # ------------------ ROW 0 ------------------ #
@@ -462,41 +507,46 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.voltage_control_2.setValue(params["voltage_2"])
         self.layout.addWidget(self.voltage_control_2, 2, 2)
 
-        # ------------------ ROW 3 ------------------ #
-        self.trigger_level_label = QtWidgets.QLabel("Level", self)
-        self.layout.addWidget(self.trigger_level_label, 3, 1)
-        self.trigger_delay_label = QtWidgets.QLabel("Delay", self)
-        self.layout.addWidget(self.trigger_delay_label, 3, 2)
-
         # ------------------ ROW 4 ------------------ #
+        self.trigger_level_label = QtWidgets.QLabel("Level", self)
+        self.layout.addWidget(self.trigger_level_label, 4, 1)
+        self.trigger_delay_label = QtWidgets.QLabel("Delay", self)
+        self.layout.addWidget(self.trigger_delay_label, 4, 2)
+
+        # ------------------ ROW 5 ------------------ #
         start, end = parameter_bounds.RED_PITAYA_TRIGGER_LEVEL_BOUNDS
         self.trigger_label = QtWidgets.QLabel("Trigger:", self)
-        self.layout.addWidget(self.trigger_label, 4, 0)
+        self.layout.addWidget(self.trigger_label, 5, 0)
 
         self.trigger_control_1 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_1.setRange(start, end)
         self.trigger_control_1.setSingleStep(0.1)
         self.trigger_control_1.setValue(params["trigger_level"])
-        self.layout.addWidget(self.trigger_control_1, 4, 1)
+        self.layout.addWidget(self.trigger_control_1, 5, 1)
 
         self.trigger_control_2 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_2.setRange(start, end)
         self.trigger_control_2.setSingleStep(0.1)
         self.trigger_control_2.setValue(params["trigger_delay"])
-        self.layout.addWidget(self.trigger_control_2, 4, 2)
+        self.layout.addWidget(self.trigger_control_2, 5, 2)
 
-        # ------------------ ROW 5 ------------------ #
+        # ------------------ ROW 7 ------------------ #
+        self.time_scale_label = QtWidgets.QLabel("Time Scale [ms]:", self)
+        self.layout.addWidget(self.time_scale_label, 7, 0)
+
+        self.time_scale_control = QtWidgets.QDoubleSpinBox(self)
+        self.time_scale_control.setRange(0, 1)
+        self.time_scale_control.setSingleStep(0.1)
+        self.time_scale_control.setValue(0.1)
+        self.layout.addWidget(self.time_scale_control, 7, 1, 1, 2)
+
+        # ------------------ ROW 8 ------------------ #
         buttons = QtWidgets.QDialogButtonBox.StandardButton.Cancel | QtWidgets.QDialogButtonBox.StandardButton.Ok
         self.button_box = QtWidgets.QDialogButtonBox(self)
         self.button_box.setStandardButtons(buttons)
-        self.layout.addWidget(self.button_box, 5, 0, 1, 3)
+        self.button_box.setContentsMargins(10, 10, 10, 10)
+        self.layout.addWidget(self.button_box, 8, 0, 1, 3)
         # noinspection PyUnresolvedReferences
         self.button_box.accepted.connect(update_callback)
+        # noinspection PyUnresolvedReferences
         self.button_box.rejected.connect(self.close)
-        # self.update_button = QtWidgets.QPushButton("Update", self)
-        # self.layout.addWidget(self.update_button, 5, 2)
-        # self.cancel_button = QtWidgets.QPushButton("Cancel", self)
-        # self.layout.addWidget(self.cancel_button, 5, 1)
-        #
-        # self.button_box.addButton(self.update_button, QtWidgets.QDialogButtonBox.AcceptRole)
-        # self.button_box.addButton(self.cancel_button, QtWidgets.QDialogButtonBox.RejectRole)

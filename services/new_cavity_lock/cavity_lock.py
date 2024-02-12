@@ -16,7 +16,7 @@ if __name__ == '__main__':
     data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 3}, scope_ip=None)
     # data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
 
-    model = CavityLockModel(data_loader, resonance_fit, save=False, use_socket=True)
+    model = CavityLockModel(data_loader, resonance_fit, save=False, use_socket=False)
 
     controller = CavityLockController(model)
     controller.start()

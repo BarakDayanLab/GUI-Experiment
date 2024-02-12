@@ -7,7 +7,7 @@ CH1_VOLTAGE = 0.04
 CH2_VOLTAGE = 0.04
 TRIGGER_LEVEL = 1.0
 TRIGGER_DELAY = 0.0
-
+TIME_SCALE = 0.1
 
 # -------------------- PID PARAMETERS -------------------- #
 PID_KP = 0.3

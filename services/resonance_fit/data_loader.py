@@ -23,6 +23,8 @@ class DataLoader:
 
     def stop(self):
         self.is_stopped = True
+
+    def join(self):
         self.thread.join()
 
 
@@ -92,6 +94,7 @@ class DataLoaderRedPitaya(DataLoader):
         self.red_pitaya.set_outputAmplitude(output=2, v=params["voltage_2"])
         self.red_pitaya.set_triggerLevel(params["trigger_level"], True)
         self.red_pitaya.set_triggerDelay(params["trigger_delay"], True)
+        self.red_pitaya.set_timeScale(params["time_scale"], True)
         self.red_pitaya.updateParameters()
 
     def load_data(self):

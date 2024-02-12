@@ -142,3 +142,7 @@ class CavityLockController:
 
     def update_red_pitaya_parameters(self, event=None):
         self.model.set_data_loader_params(self.app.red_pitaya_params)
+
+    # ------------------ CONNECTION PANEL ------------------ #
+    def update_socket_status(self, status):
+        self.app.connection_panel.update_socket_status(status)
