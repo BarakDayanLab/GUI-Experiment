@@ -53,10 +53,10 @@ class CavityLockController:
             self.update_ki()
             self.update_kd()
 
-            self.update_laser_is_checked(self.app.hmp_control.laser_checkbox.isChecked())
-            self.update_laser_current()
-            self.update_halogen_is_checked(self.app.hmp_control.halogen_checkbox.isChecked())
-            self.update_halogen_voltage()
+            self.view_get_laser_is_checked()
+            self.view_get_laser_current()
+            self.view_get_halogen_is_checked()
+            self.view_get_halogen_voltage()
 
     # ------------------ BIND ------------------ #
     # noinspection PyUnresolvedReferences
@@ -121,20 +121,29 @@ class CavityLockController:
         is_checked = self.app.hmp_control.laser_checkbox.isChecked()
         self.model.set_laser_on_off(is_checked)
 
+    def view_get_laser_is_checked(self):
+        is_checked = self.model.get_laser_on_off()
+        self.app.hmp_control.laser_checkbox.setChecked(is_checked)
+
     def update_laser_current(self, event=None):
         self.model.set_laser_current(self.app.hmp_control.laser_current_control.value())
 
-    def update_laser_view(self, current):
+    def view_get_laser_current(self):
+        current = self.model.get_laser_current()
         self.app.hmp_control.laser_current_control.setValue(current)
 
     def update_halogen_is_checked(self, *args):
         is_checked = self.app.hmp_control.halogen_checkbox.isChecked()
         self.model.set_halogen_on_off(is_checked)
 
+    def view_get_halogen_is_checked(self):
+        is_checked = self.model.get_halogen_on_off()
+        self.app.hmp_control.halogen_checkbox.setChecked(is_checked)
+
     def update_halogen_voltage(self, event=None):
         self.model.set_halogen_voltage(self.app.hmp_control.halogen_voltage_control.value())
 
-    def view_update_halogen_voltage(self):
+    def view_get_halogen_voltage(self):
         voltage = self.model.get_halogen_voltage()
         self.app.hmp_control.halogen_voltage_control.setValue(voltage)
 

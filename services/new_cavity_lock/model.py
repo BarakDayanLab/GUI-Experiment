@@ -54,8 +54,6 @@ class CavityLockModel:
 
         self.socket = SocketClient(cfg.SOCKET_IP, cfg.SOCKET_PORT, self.socket_connection_status)
 
-        self.set_halogen_current(3)
-
     # ------------------ GENERAL ------------------ #
 
     def start(self, controller):
@@ -93,7 +91,7 @@ class CavityLockModel:
         if not self.pid.auto_mode:
             return
         self.set_laser_current(output)
-        self.controller.update_laser_view(output)
+        self.controller.view_get_laser_current()
 
     # ------------------ RESONANCE FIT ------------------ #
     @use_lock
@@ -169,6 +167,10 @@ class CavityLockModel:
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
         self.hmp4040.outputState(int(is_checked))
 
+    def get_laser_on_off(self):
+        self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
+        return bool(self.hmp4040.getOutputState())
+
     def set_laser_current(self, laser_current):
         self.hmp4040.setOutputChannel(default_parameters.HMP_LASER_CHANNEL)
         return self.hmp4040.setCurrent(laser_current)
@@ -185,17 +187,25 @@ class CavityLockModel:
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         self.hmp4040.outputState(int(is_checked))
 
+    def get_halogen_on_off(self):
+        self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
+        return bool(self.hmp4040.getOutputState())
+
     def set_halogen_voltage(self, halogen_voltage):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.setVoltage(halogen_voltage)
+
+    def get_halogen_voltage(self):
+        self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
+        return self.hmp4040.getVoltage()
 
     def set_halogen_current(self, halogen_current):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.setCurrent(halogen_current)
 
-    def get_halogen_voltage(self):
+    def get_halogen_current(self):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
-        return self.hmp4040.getVoltage()
+        return self.hmp4040.getCurrent()
 
     # ------------------ SOCKET ------------------ #
     def socket_connection_status(self, is_connected):

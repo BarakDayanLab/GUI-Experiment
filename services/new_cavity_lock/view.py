@@ -36,7 +36,7 @@ class App(QtWidgets.QApplication):
         self.red_pitaya_params = self.get_default_red_pitaya_parameters()
 
         self.set_default_pid_parameters()
-        self.set_default_hmp_parameters()
+        # self.set_default_hmp_parameters()
 
     def start(self):
         self.main_window.show()
