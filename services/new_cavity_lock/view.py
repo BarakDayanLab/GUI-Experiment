@@ -513,16 +513,17 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.layout.addWidget(self.trigger_delay_label, 4, 2)
 
         # ------------------ ROW 5 ------------------ #
-        start, end = parameter_bounds.RED_PITAYA_TRIGGER_LEVEL_BOUNDS
         self.trigger_label = QtWidgets.QLabel("Trigger:", self)
         self.layout.addWidget(self.trigger_label, 5, 0)
 
+        start, end = parameter_bounds.RED_PITAYA_TRIGGER_LEVEL_BOUNDS
         self.trigger_control_1 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_1.setRange(start, end)
         self.trigger_control_1.setSingleStep(0.1)
         self.trigger_control_1.setValue(params["trigger_level"])
         self.layout.addWidget(self.trigger_control_1, 5, 1)
 
+        start, end = parameter_bounds.RED_PITAYA_TRIGGER_DELAY_BOUNDS
         self.trigger_control_2 = QtWidgets.QDoubleSpinBox(self)
         self.trigger_control_2.setRange(start, end)
         self.trigger_control_2.setSingleStep(0.1)
@@ -533,8 +534,9 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
         self.time_scale_label = QtWidgets.QLabel("Time Scale [ms]:", self)
         self.layout.addWidget(self.time_scale_label, 7, 0)
 
+        start, end = parameter_bounds.RED_PITAYA_TIME_SCALE_BOUNDS
         self.time_scale_control = QtWidgets.QDoubleSpinBox(self)
-        self.time_scale_control.setRange(0, 1)
+        self.time_scale_control.setRange(start, end)
         self.time_scale_control.setSingleStep(0.05)
         self.time_scale_control.setValue(params["time_scale"])
         self.layout.addWidget(self.time_scale_control, 7, 1, 1, 2)
