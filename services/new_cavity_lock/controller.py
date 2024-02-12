@@ -1,17 +1,13 @@
-import time
-
-from pynput.keyboard import GlobalHotKeys
 from .model import CavityLockModel
-from .config import default_parameters
 from services.resonance_fit.data_loader import DataLoaderRedPitaya
 import sys
 from .view import App
 
 
 class CavityLockController:
-    def __init__(self, model: CavityLockModel):
+    def __init__(self, save, use_socket):
         self.app = App(self)
-        self.model = model
+        self.model = CavityLockModel(save=save, use_socket=use_socket)
 
         self.bind_general_controls()
         self.bind_pid_controls()
@@ -39,7 +35,7 @@ class CavityLockController:
         return self.model.get_current_fit()
 
     def update_all_devices(self):
-        if isinstance(self.model.data_loader, DataLoaderRedPitaya):
+        if isinstance(self.model.resonance_fit_data_loader, DataLoaderRedPitaya):
             self.update_red_pitaya_parameters()
         else:
             self.app.general_controls.red_pitaya_panel.setEnabled(False)

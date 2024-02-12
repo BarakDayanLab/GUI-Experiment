@@ -1,4 +1,5 @@
 import json
+import time
 import struct
 import socket
 from threading import Thread, Event
@@ -16,6 +17,8 @@ class SocketClient:
         self.connect_socket_thread = Thread(target=self.connect_socket)
         self.stop_thread = Event()
 
+        self.connected = False
+
     def start(self):
         self.connect_socket_thread.start()
 
@@ -26,7 +29,8 @@ class SocketClient:
         self.connect_socket_thread.join()
         self.socket.close()
 
-    def get_host_ip(self):
+    @staticmethod
+    def get_host_ip():
         hostname = socket.gethostname()
         return hostname, socket.gethostbyname(hostname)
 
@@ -45,7 +49,9 @@ class SocketClient:
         try:
             self.socket.connect((self.ip, self.port))
             self.connection_callback(True)
+            self.connected = True
         except OSError as e:
+            time.sleep(1)
             self.reinitialize_socket()
             self.connect_socket()
 
@@ -55,13 +61,17 @@ class SocketClient:
         self.connect_socket_thread.start()
 
     def send_data(self, message):
+        if not self.connected:
+            return
         message = json.dumps(message)
         message = message.encode()
         data_size = len(message)
         struct_data = struct.pack('!I', data_size) + message
+
         try:
             res = self.socket.send(struct_data)
             return res
         except OSError as e:
             self.connection_callback(False)
+            self.connected = False
             self.reconnect_socket()

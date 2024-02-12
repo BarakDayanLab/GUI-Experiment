@@ -15,7 +15,7 @@ PID_KI = 0.6
 PID_KD = 0.1
 PID_OFFSET = 0.0
 
-# -------------------- HMP PARAMETERS -------------------- #
+# -------------------- HMP PARAMETERS !!!DEPRECATED!!! -------------------- #
 HMP_LASER_CHANNEL = 4
 HMP_LASER_IS_ON = False
 HMP_LASER_CURRENT = 0.17

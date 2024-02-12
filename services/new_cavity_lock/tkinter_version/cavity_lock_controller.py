@@ -45,7 +45,7 @@ class CavityLockController:
         return self.model.get_current_fit()
 
     def update_all_devices(self):
-        if isinstance(self.model.data_loader, DataLoaderRedPitaya):
+        if isinstance(self.model.resonance_fit_data_loader, DataLoaderRedPitaya):
             self.update_red_pitaya_parameters()
         else:
             self.app.buttons_container.red_pitaya_panel.config(state="disabled")

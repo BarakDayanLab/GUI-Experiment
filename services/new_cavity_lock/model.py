@@ -4,9 +4,11 @@ import functools
 import numpy as np
 from .socket_client import SocketClient
 from simple_pid import PID
-from threading import Lock, Event, Timer, Thread
+from threading import Lock, Event, Timer
 from functions.HMP4040Control import HMP4040Visa
 from .config import default_parameters, parameter_bounds, general as cfg
+from services.resonance_fit import ResonanceFit, CavityKex, DataLoaderRedPitaya, ScopeDataLoader
+from .interference import InterferenceFit
 
 
 class SetInterval(Timer):
@@ -26,10 +28,7 @@ def use_lock(func):
 
 
 class CavityLockModel:
-    def __init__(self, data_loader, resonance_fit, save=False, use_socket=False):
-        self.resonance_fit = resonance_fit
-        self.data_loader = data_loader
-        self.data_loader.on_data_callback = self.on_data
+    def __init__(self, save=False, use_socket=False):
         self.save = save
         self.use_socket = use_socket
 
@@ -43,22 +42,30 @@ class CavityLockModel:
         self.pid = PID(0, 0, 0, setpoint=0, sample_time=0.1, output_limits=parameter_bounds.HMP_LASER_CURRENT_BOUNDS,
                        auto_mode=False, starting_output=parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0])
 
+        # self.resonance_fit_data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 2}, scope_ip=None)
+        self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
+        self.resonance_fit_data_loader.on_data_callback = self.on_data
+
+        cavity = CavityKex(k_i=4.6, h=4.5)
+        self.resonance_fit = ResonanceFit(cavity)
+
+        # self.interference_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffe3.local")
+        # self.interference_fit = InterferenceFit()
+
         self.controller = None
         self.last_fit_success = False
-
         self.lock = Lock()
         self.started_event = Event()
 
         self.save_interval = SetInterval(cfg.SAVE_INTERVAL, self.save_spectrum)
         self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
-
         self.socket = SocketClient(cfg.SOCKET_IP, cfg.SOCKET_PORT, self.socket_connection_status)
 
     # ------------------ GENERAL ------------------ #
 
     def start(self, controller):
         self.controller = controller
-        self.data_loader.start()
+        self.resonance_fit_data_loader.start()
         self.started_event.wait()
         self.save and self.save_interval.start()
         self.use_socket and self.socket_interval.start()
@@ -67,13 +74,14 @@ class CavityLockModel:
     def stop(self):
         self.save_interval.cancel()
         self.socket_interval.cancel()
-        self.data_loader.stop()
+        self.resonance_fit_data_loader.stop()
         self.use_socket and self.socket.close()
 
-        self.data_loader.join()
+        self.resonance_fit_data_loader.join()
         self.use_socket and self.socket.join()
 
     # ------------------ DATA ------------------ #
+
     @use_lock
     def on_data(self, data):
         self.resonance_fit.set_data(*data)
@@ -86,18 +94,12 @@ class CavityLockModel:
         if not self.started_event.is_set():
             self.started_event.set()
 
-    def update_pid(self):
-        output = self.pid(self.resonance_fit.lock_error)
-        if not self.pid.auto_mode:
-            return
-        self.set_laser_current(output)
-        self.controller.view_get_laser_current()
-
-    # ------------------ RESONANCE FIT ------------------ #
     @use_lock
     def calibrate_peaks_params(self, points):
         num_idx_in_peak = np.round(np.abs(points[0][0] - points[1][0]))
         self.resonance_fit.calibrate_peaks_params(num_idx_in_peak)
+
+    # ------------------ RESONANCE FIT ------------------ #
 
     @use_lock
     def set_selected_peak(self, point):
@@ -133,12 +135,26 @@ class CavityLockModel:
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
         return rubidium_lines
 
+    # ------------------ INTERFERENCE FIT ------------------ #
+
+    # @use_lock
+    # def get_interference_fit(self, data):
+    #     peak_idx = self.interference_fit.get_peak_idx(data)
+    #     return self.resonance_fit.x_axis[peak_idx]
+
     # ------------------ DATA LOADER ------------------ #
 
     def set_data_loader_params(self, params):
-        self.data_loader.update(params)
+        self.resonance_fit_data_loader.update(params)
 
     # ------------------ PID ------------------ #
+
+    def update_pid(self):
+        output = self.pid(self.resonance_fit.lock_error)
+        if not self.pid.auto_mode:
+            return
+        self.set_laser_current(output)
+        self.controller.view_get_laser_current()
 
     @use_lock
     def toggle_pid_lock(self, current_value):
@@ -217,6 +233,13 @@ class CavityLockModel:
 
         self.controller.update_socket_status(is_connected)
 
+    @use_lock
+    def send_data_socket(self):
+        if not self.last_fit_success:
+            return
+        fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
+        self.socket.send_data(fit_dict)
+
     # ------------------ SAVE DATA ------------------ #
     @staticmethod
     def get_save_paths():
@@ -239,10 +262,3 @@ class CavityLockModel:
         transmission_path, rubidium_path = self.get_save_paths()
         np.save(transmission_path, self.resonance_fit.cavity.transmission_spectrum)
         np.save(rubidium_path, self.resonance_fit.rubidium_lines.data)
-
-    @use_lock
-    def send_data_socket(self):
-        if not self.last_fit_success:
-            return
-        fit_dict = dict(k_ex=self.resonance_fit.cavity.current_fit_value, lock_error=self.resonance_fit.lock_error)
-        self.socket.send_data(fit_dict)
