@@ -80,4 +80,8 @@ class HMP4040Visa():
         v = self.inst.query('VOLT?')
         return float(v)
 
+    def getOutputState(self):
+        state = self.inst.query('OUTP:SEL?')
+        return int(state[0])
+
 # h = HMP4040Visa()
