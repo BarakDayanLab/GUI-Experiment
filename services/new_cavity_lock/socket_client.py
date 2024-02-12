@@ -27,8 +27,8 @@ class SocketClient:
         self.socket.close()
 
     def get_host_ip(self):
-        hostname = self.socket.gethostname()
-        return hostname, self.socket.gethostbyname(hostname)
+        hostname = socket.gethostname()
+        return hostname, socket.gethostbyname(hostname)
 
     def initialize_socket(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

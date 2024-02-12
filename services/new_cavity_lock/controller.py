@@ -145,4 +145,4 @@ class CavityLockController:
 
     # ------------------ CONNECTION PANEL ------------------ #
     def update_socket_status(self, status):
-        self.app.connection_panel.update_socket_status(status)
+        self.app.connection_panel.set_connection_led_status(status)

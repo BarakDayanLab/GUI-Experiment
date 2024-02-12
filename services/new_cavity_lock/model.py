@@ -54,6 +54,8 @@ class CavityLockModel:
 
         self.socket = SocketClient(cfg.SOCKET_IP, cfg.SOCKET_PORT, self.socket_connection_status)
 
+        self.set_halogen_current(3)
+
     # ------------------ GENERAL ------------------ #
 
     def start(self, controller):
@@ -61,6 +63,7 @@ class CavityLockModel:
         self.data_loader.start()
         self.started_event.wait()
         self.save and self.save_interval.start()
+        self.use_socket and self.socket_interval.start()
         self.use_socket and self.socket.start()
 
     def stop(self):
@@ -146,11 +149,11 @@ class CavityLockModel:
 
     @use_lock
     def set_kp(self, kp):
-        self.pid.tunings = (kp, self.pid.tunings[1], self.pid.tunings[2]/cfg.PID_DIVISION)
+        self.pid.tunings = (kp/cfg.PID_DIVISION, self.pid.tunings[1], self.pid.tunings[2])
 
     @use_lock
     def set_ki(self, ki):
-        self.pid.tunings = (self.pid.tunings[0], ki, self.pid.tunings[2]/cfg.PID_DIVISION)
+        self.pid.tunings = (self.pid.tunings[0], ki/cfg.PID_DIVISION, self.pid.tunings[2])
 
     @use_lock
     def set_kd(self, kd):
@@ -186,6 +189,10 @@ class CavityLockModel:
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.setVoltage(halogen_voltage)
 
+    def set_halogen_current(self, halogen_current):
+        self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
+        return self.hmp4040.setCurrent(halogen_current)
+
     def get_halogen_voltage(self):
         self.hmp4040.setOutputChannel(default_parameters.HMP_HALOGEN_CHANNEL)
         return self.hmp4040.getVoltage()
@@ -198,7 +205,7 @@ class CavityLockModel:
         else:
             print("connection to socket server lost. Trying to reconnect...")
 
-        self.controller.update_socket_connection_status(is_connected)
+        self.controller.update_socket_status(is_connected)
 
     # ------------------ SAVE DATA ------------------ #
     @staticmethod

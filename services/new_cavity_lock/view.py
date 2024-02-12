@@ -2,7 +2,6 @@ import sys
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 import matplotlib.animation as animation
@@ -88,7 +87,7 @@ class App(QtWidgets.QApplication):
         self.red_pitaya_params["voltage_2"] = self.red_pitaya_popup.voltage_control_2.value()
         self.red_pitaya_params["trigger_level"] = self.red_pitaya_popup.trigger_control_1.value()
         self.red_pitaya_params["trigger_delay"] = self.red_pitaya_popup.trigger_control_2.value()
-        self.red_pitaya_params["time_scale"] = self.red_pitaya_popup.time_scale_control.value() * 1e-3
+        self.red_pitaya_params["time_scale"] = self.red_pitaya_popup.time_scale_control.value()
         self.red_pitaya_popup.close()
         self.red_pitaya_popup = None
         self.controller.update_red_pitaya_parameters(self.red_pitaya_params)
@@ -536,8 +535,8 @@ class RedPitayaControlPanel(QtWidgets.QDialog):
 
         self.time_scale_control = QtWidgets.QDoubleSpinBox(self)
         self.time_scale_control.setRange(0, 1)
-        self.time_scale_control.setSingleStep(0.1)
-        self.time_scale_control.setValue(0.1)
+        self.time_scale_control.setSingleStep(0.05)
+        self.time_scale_control.setValue(params["time_scale"])
         self.layout.addWidget(self.time_scale_control, 7, 1, 1, 2)
 
         # ------------------ ROW 8 ------------------ #
