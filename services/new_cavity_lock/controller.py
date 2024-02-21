@@ -33,7 +33,8 @@ class CavityLockController:
         self.model.stop()
 
     def load_fit_data(self):
-        self.model.started_event.wait()
+        self.model.started_resonance_fit_event.wait()
+        self.model.started_interference_event.wait()
         return self.model.get_plot_parameters()
 
     def update_all_devices(self):

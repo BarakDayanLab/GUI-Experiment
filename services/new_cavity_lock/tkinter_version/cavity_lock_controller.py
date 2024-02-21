@@ -27,7 +27,7 @@ class CavityLockController:
 
     def start(self):
         self.model.start(self)
-        self.model.started_event.wait()
+        self.model.started_resonance_fit_event.wait()
         self.update_all_devices()
 
         self.app.after(500, self.calibrate_peaks_params)
@@ -41,7 +41,7 @@ class CavityLockController:
         self.model.stop()
 
     def load_fit_data(self):
-        self.model.started_event.wait()
+        self.model.started_resonance_fit_event.wait()
         return self.model.get_current_fit()
 
     def update_all_devices(self):

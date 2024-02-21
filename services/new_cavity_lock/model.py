@@ -45,18 +45,18 @@ class CavityLockModel:
         # self.resonance_fit_data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 2}, scope_ip=None)
         self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
         self.resonance_fit_data_loader.on_data_callback = self.on_data
-
-        self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffffe3.local")
-        self.interference_data_loader.on_data_callback = self.on_interference_data
-        self.interference_fit = InterferenceFit(avg_num=10)
-
-        cavity = CavityKex(k_i=4.6, h=4.5)
+        cavity = CavityKex(k_i=6.0, h=0.1)
         self.resonance_fit = ResonanceFit(cavity)
+
+        self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffff3e.local")
+        self.interference_data_loader.on_data_callback = self.on_interference_data
+        self.interference_fit = InterferenceFit(avg_num=2)
 
         self.controller = None
         self.last_fit_success = False
         self.lock = Lock()
-        self.started_event = Event()
+        self.started_resonance_fit_event = Event()
+        self.started_interference_event = Event()
 
         self.save_interval = SetInterval(cfg.SAVE_INTERVAL, self.save_spectrum)
         self.socket_interval = SetInterval(cfg.SEND_DATA_INTERVAL, self.send_data_socket)
@@ -67,7 +67,10 @@ class CavityLockModel:
     def start(self, controller):
         self.controller = controller
         self.resonance_fit_data_loader.start()
-        self.started_event.wait()
+        self.interference_data_loader.start()
+        self.started_resonance_fit_event.wait()
+        self.started_interference_event.wait()
+
         self.save and self.save_interval.start()
         self.use_socket and self.socket_interval.start()
         self.use_socket and self.socket.start()
@@ -76,27 +79,35 @@ class CavityLockModel:
         self.save_interval.cancel()
         self.socket_interval.cancel()
         self.resonance_fit_data_loader.stop()
+        self.interference_data_loader.stop()
         self.use_socket and self.socket.close()
 
         self.resonance_fit_data_loader.join()
+        self.interference_data_loader.join()
         self.use_socket and self.socket.join()
 
     # ------------------ DATA ------------------ #\
     @use_lock
     def on_interference_data(self, data):
-        self.interference_fit.calculate_peak_idx(data)
+        self.interference_fit.calculate_peak_idx(data[1])
+
+        if not self.started_interference_event.is_set():
+            self.started_interference_event.set()
 
     @use_lock
     def on_data(self, data):
         self.resonance_fit.set_data(*data)
-        if data[1].std() >= 6e-3:
+        # print(data[1].std())
+        # print(data[1].mean())
+        # if data[1].std() >= 6e-3:
+        if data[1].mean() >= 0.7:
             self.last_fit_success = self.resonance_fit.fit_data()
             self.last_fit_success and self.update_pid()
         else:
             self.last_fit_success = False
 
-        if not self.started_event.is_set():
-            self.started_event.set()
+        if not self.started_resonance_fit_event.is_set():
+            self.started_resonance_fit_event.set()
 
     @use_lock
     def calibrate_peaks_params(self, points):
@@ -144,7 +155,8 @@ class CavityLockModel:
     @use_lock
     def get_interference_peak(self):
         peak_idx = self.interference_fit.peak_idx
-        return self.resonance_fit.x_axis[peak_idx]
+        # return self.resonance_fit.x_axis[peak_idx]
+        return self.interference_fit.prev_data.mean(axis=0)
 
     # ------------------ PLOT PARAMETERS ------------------ #
     def get_plot_parameters(self):

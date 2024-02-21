@@ -52,7 +52,7 @@ class ScopeDataLoader(DataLoader):
 
 
 class DataLoaderRedPitaya(DataLoader):
-    def __init__(self, host="rp-ffffb4.local"):
+    def __init__(self, host):
         super().__init__()
         self.config = {'locker': 'cavity'}
         self.red_pitaya = Redpitaya(host,

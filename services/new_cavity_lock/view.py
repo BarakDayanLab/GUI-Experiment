@@ -211,7 +211,8 @@ class MatplotlibContainer(QtWidgets.QWidget):
         rubidium_artists = [self.axes["rubidium"].plot([], [])[0],
                             self.axes["rubidium"].scatter([], [], c='r'),
                             self.axes["rubidium"].scatter([], [], c='g'),
-                            self.axes["rubidium"].axvline(0, color='k', linestyle='--')]
+                            self.axes["rubidium"].plot([], [])[0]]
+                            # self.axes["rubidium"].axvline(0, color='k', linestyle='--')]
 
         self.axes["rubidium"].set_ylim(-0.1, 1.1)
 
@@ -251,11 +252,12 @@ class MatplotlibContainer(QtWidgets.QWidget):
         return *transmission_artists, *rubidium_artists
 
     def get_interference_artists(self):
-        return self.axes["rubidium"].get_lines()[1]
+        return self.axes["rubidium"].get_lines()[1],
 
     def plot_rubidium(self, x_axis, rubidium_spectrum):
         lines = self.axes["rubidium"].get_lines()
         lines[0].set_data(x_axis, rubidium_spectrum)
+        lines[1].set_xdata(x_axis)
         self.axes["rubidium"].set_xlim(x_axis[0], x_axis[-1])
 
     def plot_rubidium_peaks(self, rubidium_peaks, selected_peak):
@@ -285,7 +287,8 @@ class MatplotlibContainer(QtWidgets.QWidget):
 
     def plot_interference_peak(self, interference_peak):
         lines = self.axes["rubidium"].get_lines()
-        lines[1].set_xdata([interference_peak, interference_peak])
+        # lines[1].set_xdata([interference_peak, interference_peak])
+        lines[1].set_ydata(interference_peak)
 
     def remove_fit(self):
         self.title.setText("Error")
