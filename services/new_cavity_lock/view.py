@@ -30,6 +30,7 @@ class App(QtWidgets.QApplication):
         self.pid_control = self.main_window.buttons_container.pid_control
         self.hmp_control = self.main_window.buttons_container.hmp_control
         self.connection_panel = self.main_window.buttons_container.connection_panel
+        self.resonance_fit_control_panel = self.main_window.buttons_container.resonance_fit_control_panel
 
         # noinspection PyUnresolvedReferences
         self.general_controls.red_pitaya_panel.clicked.connect(self.activate_red_pitaya_panel_button)
@@ -327,6 +328,13 @@ class SidePanel(QtWidgets.QWidget):
         separator.setFrameShape(QtWidgets.QFrame.Shape.HLine)
         self.layout.addWidget(separator)
 
+        self.resonance_fit_control_panel = ResonanceFitControlPanel()
+        self.layout.addWidget(self.resonance_fit_control_panel)
+
+        separator = QtWidgets.QFrame(self)
+        separator.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        self.layout.addWidget(separator)
+
         self.connection_panel = ConnectionPanel(self)
         self.layout.addWidget(self.connection_panel)
 
@@ -439,6 +447,34 @@ class PidControl(QtWidgets.QWidget):
         self.start_lock_button = QtWidgets.QPushButton("Start Lock", self)
         self.start_lock_button.setCheckable(True)
         self.layout.addWidget(self.start_lock_button, 3, 0, 1, 6)
+
+
+class ResonanceFitControlPanel(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QtWidgets.QGridLayout(self)
+
+        # ------------------ ROW 0 ------------------ #
+        self.pid_controls_title = QtWidgets.QLabel("PID Controls", self)
+        self.pid_controls_title.setFont(QtGui.QFont("Helvetica", 16, QtGui.QFont.Weight.Bold))
+        self.pid_controls_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.pid_controls_title, 0, 0, 1, 2)
+
+        # ------------------ ROW 1 ------------------ #
+        self.kappa_i_label = QtWidgets.QLabel("$k_{ex}$:", self)
+        self.layout.addWidget(self.kappa_i_label, 1, 0)
+        self.kappa_i_control = QtWidgets.QDoubleSpinBox(self)
+        self.kappa_i_control.setRange(0, 10)
+        self.kappa_i_control.setSingleStep(0.1)
+        self.layout.addWidget(self.kappa_i_control, 1, 1)
+
+        # ------------------ ROW 2 ------------------ #
+        self.h_label = QtWidgets.QLabel("$h$:", self)
+        self.layout.addWidget(self.h_label, 2, 0)
+        self.h_control = QtWidgets.QDoubleSpinBox(self)
+        self.h_control.setRange(0, 10)
+        self.h_control.setSingleStep(0.1)
+        self.layout.addWidget(self.h_control, 2, 1)
 
 
 class ConnectionPanel(QtWidgets.QWidget):

@@ -44,6 +44,8 @@ class CavityLockController:
             self.app.general_controls.red_pitaya_panel.setEnabled(False)
 
         self.update_lock_offset()
+        self.update_kappa_i()
+        self.update_h()
 
         if self.model.hmp4040 is None:
             self.app.disable_hmp()
@@ -78,6 +80,10 @@ class CavityLockController:
         self.app.hmp_control.laser_current_control.valueChanged.connect(self.update_laser_current)
         self.app.hmp_control.halogen_checkbox.stateChanged.connect(self.update_halogen_is_checked)
         self.app.hmp_control.halogen_voltage_control.valueChanged.connect(self.update_halogen_voltage)
+
+    def bind_resonance_fit_controls(self):
+        self.app.resonance_fit_control_panel.kappa_i_control.valueChanged.connect(self.update_kappa_i)
+        self.app.resonance_fit_control_panel.h_control.valueChanged.connect(self.update_h)
 
     # ------------------ CONTROL FUNCTIONS ------------------ #
 
@@ -150,6 +156,15 @@ class CavityLockController:
 
     def update_red_pitaya_parameters(self, event=None):
         self.model.set_data_loader_params(self.app.red_pitaya_params)
+
+    # ------------------ RESONANCE FIT ------------------ #
+
+    def update_kappa_i(self, event=None):
+        self.model.set_kappa_i(self.app.resonance_fit_control_panel.kappa_i_control.value())
+        self.model.set_h(self.app.resonance_fit_control_panel.h_control.value())
+
+    def update_h(self, event=None):
+        self.model.set_h(self.app.resonance_fit_control_panel.h_control.value())
 
     # ------------------ CONNECTION PANEL ------------------ #
     def update_socket_status(self, status):

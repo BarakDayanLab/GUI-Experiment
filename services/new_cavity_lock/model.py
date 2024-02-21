@@ -122,6 +122,14 @@ class CavityLockModel:
         self.resonance_fit.lock_idx = np.argmin(distances)
 
     @use_lock
+    def set_kappa_i(self, kappa_i):
+        self.resonance_fit.cavity.k_i = kappa_i
+
+    @use_lock
+    def set_h(self, h):
+        self.resonance_fit.cavity.h = h
+
+    @use_lock
     def get_current_fit(self):
         x_axis = self.resonance_fit.x_axis.copy()
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
