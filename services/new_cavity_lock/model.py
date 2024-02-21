@@ -46,11 +46,12 @@ class CavityLockModel:
         self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
         self.resonance_fit_data_loader.on_data_callback = self.on_data
 
+        self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffffe3.local")
+        self.interference_data_loader.on_data_callback = self.on_interference_data
+        self.interference_fit = InterferenceFit(avg_num=10)
+
         cavity = CavityKex(k_i=4.6, h=4.5)
         self.resonance_fit = ResonanceFit(cavity)
-
-        # self.interference_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffe3.local")
-        # self.interference_fit = InterferenceFit()
 
         self.controller = None
         self.last_fit_success = False
@@ -80,7 +81,10 @@ class CavityLockModel:
         self.resonance_fit_data_loader.join()
         self.use_socket and self.socket.join()
 
-    # ------------------ DATA ------------------ #
+    # ------------------ DATA ------------------ #\
+    @use_lock
+    def on_interference_data(self, data):
+        self.interference_fit.calculate_peak_idx(data)
 
     @use_lock
     def on_data(self, data):
@@ -137,15 +141,22 @@ class CavityLockModel:
 
     # ------------------ INTERFERENCE FIT ------------------ #
 
-    # @use_lock
-    # def get_interference_fit(self, data):
-    #     peak_idx = self.interference_fit.get_peak_idx(data)
-    #     return self.resonance_fit.x_axis[peak_idx]
+    @use_lock
+    def get_interference_peak(self):
+        peak_idx = self.interference_fit.peak_idx
+        return self.resonance_fit.x_axis[peak_idx]
+
+    # ------------------ PLOT PARAMETERS ------------------ #
+    def get_plot_parameters(self):
+        data, fit = self.get_current_fit()
+        interference_peak = self.get_interference_peak()
+        return data, fit, interference_peak
 
     # ------------------ DATA LOADER ------------------ #
 
     def set_data_loader_params(self, params):
         self.resonance_fit_data_loader.update(params)
+        self.interference_data_loader.update(params)
 
     # ------------------ PID ------------------ #
 

@@ -87,14 +87,21 @@ class MatplotlibContainer(ttk.Frame):
                                                  blit=True)
 
     def plot_data(self, i):
-        data, fit = self.app.controller.load_fit_data()
+        data, fit, interference_peak = self.app.controller.load_fit_data()
         self.plot_spectrum(*data)
+
+        artists = self.get_data_artists()
 
         if fit is not None:
             self.plot_fit(*fit)
-            return self.get_all_artists()
-        self.remove_fit()
-        return self.get_data_artists()
+            artists += self.get_fit_artists()
+
+        if interference_peak is not None:
+            self.plot_interference_peak(interference_peak)
+            artists += self.get_interference_artists()
+        else:
+            self.remove_fit()
+        return artists
 
     def setup_plot(self):
         self.axes["transmission"].set_ylabel("Transmission")
@@ -113,7 +120,8 @@ class MatplotlibContainer(ttk.Frame):
         rubidium_artists = [self.axes["rubidium"].plot([], [])[0],
                             self.axes["rubidium"].plot([], [])[0],
                             self.axes["rubidium"].scatter([], [], c='r'),
-                            self.axes["rubidium"].scatter([], [], c='g')]
+                            self.axes["rubidium"].scatter([], [], c='g'),
+                            self.axes["rubidium"].axvline(0, color='k', linestyle='--')]
 
         self.axes["rubidium"].set_ylim(-0.1, 1.1)
 
@@ -124,19 +132,20 @@ class MatplotlibContainer(ttk.Frame):
         rubidium_artist = self.axes["rubidium"].get_lines()[0]
         return transmission_artist, rubidium_artist
 
-    def get_all_artists(self):
-        transmission_artists = [*self.axes["transmission"].get_lines(),
+    def get_fit_artists(self):
+        transmission_artists = [*self.axes["transmission"].get_lines()[1],
                                 *self.axes["transmission"].collections]
 
-        rubidium_artists = [*self.axes["rubidium"].get_lines(),
-                            *self.axes["rubidium"].collections]
+        rubidium_artists = [*self.axes["rubidium"].collections]
 
         return *transmission_artists, *rubidium_artists
+
+    def get_interference_artists(self):
+        return self.axes["rubidium"].get_lines()[1]
 
     def plot_rubidium(self, x_axis, rubidium_spectrum):
         lines = self.axes["rubidium"].get_lines()
         lines[0].set_data(x_axis, rubidium_spectrum)
-        # lines[1].set_data(x_axis, self.app.model.enhance_peaks(rubidium_spectrum))
         self.axes["rubidium"].set_xlim(x_axis[0], x_axis[-1])
 
     def plot_rubidium_peaks(self, rubidium_peaks, selected_peak):
@@ -163,6 +172,10 @@ class MatplotlibContainer(ttk.Frame):
         self.title.config(text=title or "")
         self.plot_transmission_fit(x_axis, transmission_fit, x_0)
         self.plot_rubidium_peaks(rubidium_peaks, selected_peak)
+
+    def plot_interference_peak(self, interference_peak):
+        lines = self.axes["rubidium"].get_lines()
+        lines[1].set_xdata([interference_peak, interference_peak])
 
     def remove_fit(self):
         self.title.config(text="Error")

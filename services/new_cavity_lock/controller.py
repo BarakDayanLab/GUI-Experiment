@@ -34,7 +34,7 @@ class CavityLockController:
 
     def load_fit_data(self):
         self.model.started_event.wait()
-        return self.model.get_current_fit()
+        return self.model.get_plot_parameters()
 
     def update_all_devices(self):
         if isinstance(self.model.resonance_fit_data_loader, DataLoaderRedPitaya):

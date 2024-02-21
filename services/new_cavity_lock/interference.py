@@ -2,15 +2,15 @@ import numpy as np
 
 
 class InterferenceFit:
-    def __init__(self):
-        self.avg_num = 10
+    def __init__(self, avg_num: int):
+        self.avg_num = avg_num
         self.peak_idx = 0
         self.num_points = 0
         self.prev_data = None
         self.initialized = False
         self.avg_idx = 0
 
-    def get_peak_idx(self, data):
+    def calculate_peak_idx(self, data):
         if not self.initialized:
             self.num_points = len(data)
             self.prev_data = np.zeros((self.avg_num, self.num_points))
