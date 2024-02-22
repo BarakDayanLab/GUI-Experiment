@@ -1,4 +1,7 @@
 
+# -------------------- RESONANCE FIT -------------------- #
+K_I = 4.6
+H = 0.5
 
 # -------------------- RED PITAYA PARAMETERS -------------------- #
 CH1_OFFSET = 0.0
@@ -7,12 +10,12 @@ CH1_VOLTAGE = 0.04
 CH2_VOLTAGE = 0.04
 TRIGGER_LEVEL = 1.0
 TRIGGER_DELAY = 0.0
-TIME_SCALE = 0.1
+TIME_SCALE = 2
 
 # -------------------- PID PARAMETERS -------------------- #
-PID_KP = 0.3
-PID_KI = 0.6
-PID_KD = 0.1
+PID_KP = 0
+PID_KI = 0.3
+PID_KD = 0.05
 PID_OFFSET = 0.0
 
 # -------------------- HMP PARAMETERS !!!DEPRECATED!!! -------------------- #

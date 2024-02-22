@@ -79,8 +79,8 @@ class Cavity:
 
 
 class CavityKex(Cavity):
-    def __init__(self, k_i: float, h: float):
-        bounds = [(0,), (np.inf,)]
+    def __init__(self, k_i: float = 0, h: float = 0):
+        bounds = [(0,), (100,)]
         super().__init__("k_ex", ["k_ex"], bounds)
         self.k_i = k_i
         self.h = h

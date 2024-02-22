@@ -45,7 +45,8 @@ class CavityLockModel:
         # self.resonance_fit_data_loader = ScopeDataLoader(channels_dict={"transmission": 1, "rubidium": 2}, scope_ip=None)
         self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
         self.resonance_fit_data_loader.on_data_callback = self.on_data
-        cavity = CavityKex(k_i=6.0, h=0.1)
+
+        cavity = CavityKex(k_i=0, h=0)
         self.resonance_fit = ResonanceFit(cavity)
 
         self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffff3e.local")
@@ -96,13 +97,13 @@ class CavityLockModel:
 
     @use_lock
     def on_data(self, data):
-        self.resonance_fit.set_data(*data)
-        # print(data[1].std())
-        # print(data[1].mean())
-        # if data[1].std() >= 6e-3:
-        if data[1].mean() >= 0.7:
+        self.resonance_fit.set_data(*data.copy())
+        if data[1].std() >= 6e-3:
             self.last_fit_success = self.resonance_fit.fit_data()
-            self.last_fit_success and self.update_pid()
+            if self.last_fit_success:
+                if len(self.resonance_fit.fit_params_history) < 2 or \
+                        np.abs(self.resonance_fit.fit_params_history[-1, -1] - self.resonance_fit.fit_params_history[-2, -1]) < 10:
+                    self.update_pid()
         else:
             self.last_fit_success = False
 
@@ -140,6 +141,7 @@ class CavityLockModel:
             return data, None
 
         lock_error = self.resonance_fit.lock_error
+        # print(self.resonance_fit.fit_params_history[-20:, -1].std())
         main_parameter = self.resonance_fit.cavity.main_parameter
         current_fit_value = self.resonance_fit.cavity.current_fit_value
         title = f"{main_parameter.upper()}: {current_fit_value:.2f}, Lock Error: {lock_error:.2f} MHz"

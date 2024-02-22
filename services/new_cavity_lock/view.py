@@ -38,6 +38,7 @@ class App(QtWidgets.QApplication):
 
         self.set_default_pid_parameters()
         # self.set_default_hmp_parameters()
+        self.set_default_resonance_fit_parameters()
 
     def start(self):
         self.main_window.show()
@@ -116,6 +117,10 @@ class App(QtWidgets.QApplication):
         self.hmp_control.laser_current_control.setValue(default_parameters.HMP_LASER_CURRENT)
         self.hmp_control.halogen_checkbox.setChecked(default_parameters.HMP_HALOGEN_IS_ON)
         self.hmp_control.halogen_voltage_control.setValue(default_parameters.HMP_HALOGEN_VOLTAGE)
+
+    def set_default_resonance_fit_parameters(self):
+        self.resonance_fit_control_panel.kappa_i_control.setValue(default_parameters.K_I)
+        self.resonance_fit_control_panel.h_control.setValue(default_parameters.H)
 
     def disable_hmp(self):
         self.hmp_control.laser_checkbox.setEnabled(False)
@@ -245,7 +250,7 @@ class MatplotlibContainer(QtWidgets.QWidget):
         return transmission_artist, rubidium_artist
 
     def get_fit_artists(self):
-        transmission_artists = [*self.axes["transmission"].get_lines()[1],
+        transmission_artists = [self.axes["transmission"].get_lines()[1],
                                 *self.axes["transmission"].collections]
 
         rubidium_artists = [*self.axes["rubidium"].collections]
@@ -461,7 +466,7 @@ class ResonanceFitControlPanel(QtWidgets.QWidget):
         self.layout.addWidget(self.pid_controls_title, 0, 0, 1, 2)
 
         # ------------------ ROW 1 ------------------ #
-        self.kappa_i_label = QtWidgets.QLabel("$k_{ex}$:", self)
+        self.kappa_i_label = QtWidgets.QLabel("k_{ex}:", self)
         self.layout.addWidget(self.kappa_i_label, 1, 0)
         self.kappa_i_control = QtWidgets.QDoubleSpinBox(self)
         self.kappa_i_control.setRange(0, 10)
@@ -469,7 +474,7 @@ class ResonanceFitControlPanel(QtWidgets.QWidget):
         self.layout.addWidget(self.kappa_i_control, 1, 1)
 
         # ------------------ ROW 2 ------------------ #
-        self.h_label = QtWidgets.QLabel("$h$:", self)
+        self.h_label = QtWidgets.QLabel("h:", self)
         self.layout.addWidget(self.h_label, 2, 0)
         self.h_control = QtWidgets.QDoubleSpinBox(self)
         self.h_control.setRange(0, 10)

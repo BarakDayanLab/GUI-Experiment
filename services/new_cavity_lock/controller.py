@@ -14,6 +14,7 @@ class CavityLockController:
         self.bind_general_controls()
         self.bind_pid_controls()
         self.bind_hmp_controls()
+        self.bind_resonance_fit_controls()
 
     # ------------------ RUN ------------------ #
 
