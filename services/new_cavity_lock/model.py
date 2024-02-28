@@ -165,8 +165,8 @@ class CavityLockModel:
     @use_lock
     def get_interference_peak(self):
         peak_idx = self.interference_fit.peak_idx
-        # return self.resonance_fit.x_axis[peak_idx]
-        return self.interference_fit.prev_data.mean(axis=0)
+        return self.resonance_fit.x_axis[peak_idx]
+        # return self.interference_fit.prev_data.mean(axis=0)
 
     # ------------------ PLOT PARAMETERS ------------------ #
     def get_plot_parameters(self):
@@ -292,6 +292,9 @@ class CavityLockModel:
 
     @use_lock
     def save_spectrum(self):
+        if not self.pid.auto_mode:
+            return
+
         transmission_path, rubidium_path = self.get_save_paths()
         np.save(transmission_path, self.resonance_fit.cavity.transmission_spectrum)
         np.save(rubidium_path, self.resonance_fit.rubidium_lines.data)

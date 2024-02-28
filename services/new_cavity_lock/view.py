@@ -192,12 +192,13 @@ class MatplotlibContainer(QtWidgets.QWidget):
         if fit is not None:
             self.plot_fit(*fit)
             artists += self.get_fit_artists()
+        else:
+            self.remove_fit()
 
         if interference_peak is not None:
             self.plot_interference_peak(interference_peak)
             artists += self.get_interference_artists()
-        else:
-            self.remove_fit()
+
         return artists
 
     def setup_plot(self):
@@ -217,8 +218,8 @@ class MatplotlibContainer(QtWidgets.QWidget):
         rubidium_artists = [self.axes["rubidium"].plot([], [])[0],
                             self.axes["rubidium"].scatter([], [], c='r'),
                             self.axes["rubidium"].scatter([], [], c='g'),
-                            self.axes["rubidium"].plot([], [])[0]]
-                            # self.axes["rubidium"].axvline(0, color='k', linestyle='--')]
+                            # self.axes["rubidium"].plot([], [])[0]]
+                            self.axes["rubidium"].axvline(0, color='k', linestyle='--')]
 
         self.axes["rubidium"].set_ylim(-0.1, 1.1)
 
@@ -293,11 +294,11 @@ class MatplotlibContainer(QtWidgets.QWidget):
 
     def plot_interference_peak(self, interference_peak):
         lines = self.axes["rubidium"].get_lines()
-        # lines[1].set_xdata([interference_peak, interference_peak])
-        lines[1].set_ydata(interference_peak)
+        lines[1].set_xdata([interference_peak, interference_peak])
+        # lines[1].set_ydata(interference_peak)
 
     def remove_fit(self):
-        self.title.setText("Error")
+        self.title.setText("Unsuccessful fit")
 
     def plot_2nd_figure(self, x_axis, signal):
         lines = self.axes["figure_2"].get_lines()
