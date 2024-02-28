@@ -51,7 +51,7 @@ class CavityLockModel:
 
         self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffff3e.local")
         self.interference_data_loader.on_data_callback = self.on_interference_data
-        self.interference_fit = InterferenceFit(avg_num=2)
+        self.interference_fit = InterferenceFit()
 
         self.controller = None
         self.last_fit_success = False
@@ -165,8 +165,8 @@ class CavityLockModel:
     @use_lock
     def get_interference_peak(self):
         peak_idx = self.interference_fit.peak_idx
-        return self.resonance_fit.x_axis[peak_idx]
-        # return self.interference_fit.prev_data.mean(axis=0)
+        # return self.resonance_fit.x_axis[peak_idx]
+        return self.interference_fit.data
 
     # ------------------ PLOT PARAMETERS ------------------ #
     def get_plot_parameters(self):
