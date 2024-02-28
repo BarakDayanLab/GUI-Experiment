@@ -54,14 +54,14 @@ class CavityLockModel(ScopeHandler):
         self.use_socket and self.socket.join()
 
     # ------------------ DATA ------------------ #
-    @use_lock
+    @use_lock()
     def calibrate_peaks_params(self, points):
         num_idx_in_peak = np.round(np.abs(points[0][0] - points[1][0]))
         self.calibrate_num_points(num_idx_in_peak)
 
     # ------------------ RESONANCE FIT ------------------ #
 
-    @use_lock
+    @use_lock()
     def set_selected_peak(self, point):
         distances = np.sum((self.get_rubidium_peaks() - point) ** 2, axis=1)
         lock_idx = np.argmin(distances)
@@ -76,26 +76,27 @@ class CavityLockModel(ScopeHandler):
     # ------------------ PID ------------------ #
 
     def update_pid(self):
-        output = self.pid(self.get_lock_error())
+        lock_error = self.get_lock_error()
+        output = self.pid(lock_error)
         if not self.pid.auto_mode:
             return
         self.set_laser_current(output)
         self.controller.view_get_laser_current()
 
-    @use_lock
+    @use_lock()
     def toggle_pid_lock(self, current_value):
         self.pid.set_auto_mode(not self.pid.auto_mode, current_value)
         return self.pid.auto_mode
 
-    @use_lock
+    @use_lock()
     def set_kp(self, kp):
         self.pid.tunings = (kp/cfg.PID_DIVISION, self.pid.tunings[1], self.pid.tunings[2])
 
-    @use_lock
+    @use_lock()
     def set_ki(self, ki):
         self.pid.tunings = (self.pid.tunings[0], ki/cfg.PID_DIVISION, self.pid.tunings[2])
 
-    @use_lock
+    @use_lock()
     def set_kd(self, kd):
         self.pid.tunings = (self.pid.tunings[0], self.pid.tunings[1], kd/cfg.PID_DIVISION)
 
@@ -158,12 +159,12 @@ class CavityLockModel(ScopeHandler):
 
         self.controller.update_socket_status(is_connected)
 
-    @use_lock
+    @use_lock()
     def send_data_socket(self):
         if not self.last_fit_success:
             return
-        k_ex, lock_error = self.get_k_ex(), self.get_lock_error()
-        fit_dict = dict(k_ex=k_ex, lock_error=lock_error)
+        k_ex, lock_error, interference_error = self.get_k_ex(), self.get_lock_error(), self.get_interference_error()
+        fit_dict = dict(k_ex=k_ex, lock_error=lock_error, interference_error=interference_error)
         self.socket.send_data(fit_dict)
 
     # ------------------ SAVE DATA ------------------ #
@@ -183,7 +184,7 @@ class CavityLockModel(ScopeHandler):
         rubidium_path = os.path.join(folder_path, rubidium_filename)
         return transmission_path, rubidium_path
 
-    @use_lock
+    @use_lock()
     def save_spectrum(self):
         if not self.pid.auto_mode:
             return

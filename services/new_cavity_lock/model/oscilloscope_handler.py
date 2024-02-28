@@ -100,36 +100,34 @@ class ScopeHandler:
         fit = (relevant_x_axis, rubidium_peaks, selected_peak, lorentzian_center, transmission_fit, title)
         return data, fit
 
-    @use_lock("resonance_fit_lock")
     def get_transmission_spectrum(self):
         return self.resonance_fit.cavity.transmission_spectrum.copy()
 
-    @use_lock("resonance_fit_lock")
     def get_rubidium_lines(self):
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
         return rubidium_lines
 
-    @use_lock("resonance_fit_lock")
     def get_rubidium_peaks(self):
         return self.resonance_fit.rubidium_peaks.copy()
 
-    @use_lock("interference_lock")
     def get_interference_peak(self):
-        # peak_idx = self.interference_fit.peak_idx
-        # return self.resonance_fit.x_axis[peak_idx]
-        return self.interference_fit.data
+        peak_idx = self.interference_fit.peak_idx
+        return self.resonance_fit.x_axis[peak_idx]
+        # return self.interference_fit.data
 
-    @use_lock("resonance_fit_lock")
     def get_k_ex(self):
         return self.resonance_fit.cavity.k_ex
 
-    @use_lock("resonance_fit_lock")
     def set_lock_offset(self, lock_offset):
         self.resonance_fit.lock_offset = lock_offset
 
-    @use_lock("resonance_fit_lock")
     def get_lock_error(self):
         return self.resonance_fit.lock_error
+
+    def get_interference_error(self):
+        interference_peak = self.get_interference_peak()
+        rubidium_peak = self.resonance_fit.rubidium_peaks[-2][0]
+        return rubidium_peak - interference_peak
 
     # ------------------ SET ------------------ #
 

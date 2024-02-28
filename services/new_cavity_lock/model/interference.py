@@ -11,13 +11,13 @@ class InterferenceFit:
 
     def calculate_peak_idx(self, data):
         self.data = np.abs(data - data.mean())
+
         self.data = self.normalize_data(self.data)
-        peak_idx, _ = find_peaks(data, prominence=0.7)
-        if len(peak_idx) != 1 and self.undetected_peaks < 6:
-            self.undetected_peaks += 1
-        else:
-            self.undetected_peaks = 0
-            self.peak_idx = 0
+        self.data = self.enhance_peaks(self.data)
+        if self.data.std() > 0.1:
+            return
+
+        self.peak_idx = np.argmax(self.data)
 
     @staticmethod
     def normalize_data(data):
@@ -25,14 +25,9 @@ class InterferenceFit:
         data /= data.max()
         return data
 
-    # def enhance_peaks(self, data):
-    #     cutoff = 1
-    #     # noinspection PyTupleAssignmentBalance
-    #     b, a = butter(2, cutoff, btype='low', analog=False)
-    #     filtered_data = filtfilt(b, a, data)
-    #
-    #     second_derivative = -np.pad(np.diff(np.diff(filtered_data)), 1)
-    #     second_derivative -= np.min(second_derivative)
-    #     second_derivative /= np.max(second_derivative)
-    #     return second_derivative
+    def enhance_peaks(self, data):
+        second_derivative = -np.pad(np.diff(np.diff(data)), 1)
+        second_derivative -= np.min(second_derivative)
+        second_derivative /= np.max(second_derivative)
+        return second_derivative
 

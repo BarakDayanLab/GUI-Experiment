@@ -8,8 +8,8 @@ SOCKET_PORT = 5050
 SEND_DATA_INTERVAL = 0.1
 
 # ----------------- SAVE ----------------- #
-FOLDER_PATH = "C:\\Users\\nadavkan.WISMAIN\\PycharmProjects\\GUI-Experiment\\services\\new_cavity_lock\\data"
-SAVE_INTERVAL = 30
+FOLDER_PATH = "U:\\Lab_2023\\Experiment_results\\cavity_spectrum"
+SAVE_INTERVAL = 1
 
 # ----------------- PID ----------------- #
 PID_DIVISION = 1000

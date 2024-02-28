@@ -1,6 +1,4 @@
-from services.resonance_fit import ResonanceFit, ScopeDataLoader, CavityFwhm, DataLoaderRedPitaya, CavityKex
 from services.new_cavity_lock.controller import CavityLockController
-from services.new_cavity_lock.model import CavityLockModel
 
 """
 This is the main file of the cavity lock service. The service is built on Model-View-Controller (MVC) architecture.
@@ -11,5 +9,5 @@ are independent of each other and can be changed without affecting the other.
 
 
 if __name__ == '__main__':
-    controller = CavityLockController(save=False, use_socket=True)
+    controller = CavityLockController(save=True, use_socket=True)
     controller.start()
