@@ -1,9 +1,9 @@
-from services.resonance_fit.data_loader import ScopeDataLoader, DataLoaderRedPitaya
-from services.resonance_fit.cavity import CavityFwhm
+from services.new_cavity_lock.model.data_loader import ScopeDataLoader
+from cavity import CavityFwhm
 from services.resonance_fit.view import App
 from services.resonance_fit.resonance_fit import ResonanceFit
 import numpy as np
-from scipy.fft import rfft, irfft, fftshift, ifftshift
+from scipy.fft import rfft
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
 

@@ -1,7 +1,5 @@
-import time
-
 from .model import CavityLockModel
-from services.resonance_fit.data_loader import DataLoaderRedPitaya
+from services.new_cavity_lock.model.data_loader import DataLoaderRedPitaya
 import sys
 from .view import App
 

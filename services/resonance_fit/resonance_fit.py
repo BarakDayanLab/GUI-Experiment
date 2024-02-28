@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
-from .cavity import RubidiumLines
+from cavity import RubidiumLines
 from scipy.signal import butter, filtfilt
 
 

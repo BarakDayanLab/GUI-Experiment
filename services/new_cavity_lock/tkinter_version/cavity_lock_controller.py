@@ -1,8 +1,7 @@
-from pynput.keyboard import GlobalHotKeys
 from .cavity_lock_view import App
 from services.new_cavity_lock.model import CavityLockModel
 from services.new_cavity_lock.config import default_parameters
-from services.resonance_fit.data_loader import DataLoaderRedPitaya
+from services.new_cavity_lock.model.data_loader import DataLoaderRedPitaya
 import sys
 
 

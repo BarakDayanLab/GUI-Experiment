@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 from dataclasses import dataclass, field
 from typing import Optional
-from . import utililties as utils
+from services.resonance_fit import utililties as utils
 
 
 @dataclass

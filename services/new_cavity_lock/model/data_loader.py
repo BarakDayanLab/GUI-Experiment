@@ -1,4 +1,4 @@
-from .scope_connection import Scope, FakeScope
+from scope_connection import Scope, FakeScope
 from functions.RedPitayaWebsocket import Redpitaya
 from threading import Thread
 from multiprocessing import Queue
