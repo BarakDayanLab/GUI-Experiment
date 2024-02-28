@@ -102,7 +102,7 @@ class CavityLockModel:
             self.last_fit_success = self.resonance_fit.fit_data()
             if self.last_fit_success:
                 if len(self.resonance_fit.fit_params_history) < 2 or \
-                        np.abs(self.resonance_fit.fit_params_history[-1, -1] - self.resonance_fit.fit_params_history[-2, -1]) < 10:
+                        np.abs(self.resonance_fit.fit_params_history[-1, -1] - self.resonance_fit.fit_params_history[-2, -1]) < 5:
                     self.update_pid()
         else:
             self.last_fit_success = False
