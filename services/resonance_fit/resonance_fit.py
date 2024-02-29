@@ -12,6 +12,7 @@ class ResonanceFit:
 
         self.lock_idx = 4
         self.lock_offset = 0
+        self.zero_voltage = None
 
         self.x_axis = np.array([])
         self.current_relevant_area = None
@@ -72,10 +73,10 @@ class ResonanceFit:
         self.relevant_x_axis = self.x_axis[self.current_relevant_area]
 
     # ------------------ DATA PROCESSING ------------------ #
-    @staticmethod
-    def normalize_data(data):
-        data -= np.min(data)
-        data /= np.max(data)
+    def normalize_data(self, data):
+        shift = data.min() if self.zero_voltage is None else self.zero_voltage
+        data -= shift
+        data /= data.max()
         return data
 
     def enhance_peaks(self, data):

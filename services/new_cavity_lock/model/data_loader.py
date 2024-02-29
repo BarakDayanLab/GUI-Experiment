@@ -110,8 +110,8 @@ class DataLoaderRedPitaya(DataLoader):
             self.red_pitaya.set_inverseChannel(False, 1)
             self.red_pitaya.set_inverseChannel(False, 2)
             self.configure_input_channels()
-
-        self.on_data_callback(np.array(data))
+        else:
+            self.on_data_callback(np.array(data))
 
     def configure_input_channels(self):
         # Set channel 1
@@ -120,7 +120,7 @@ class DataLoaderRedPitaya(DataLoader):
         self.red_pitaya.set_inputState(1, True)
 
         # Set channel 2
-        self.red_pitaya.set_inputAcDcCoupling(2, "AC")
+        self.red_pitaya.set_inputAcDcCoupling(2, "DC")
         self.red_pitaya.set_inputGain(2, "1:1")
         self.red_pitaya.set_inputState(2, True)
 

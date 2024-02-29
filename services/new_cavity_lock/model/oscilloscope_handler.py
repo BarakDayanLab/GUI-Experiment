@@ -49,7 +49,7 @@ class ScopeHandler:
 
     @use_lock("interference_lock")
     def on_interference_data(self, data):
-        self.interference_fit.calculate_peak_idx(data[1])
+        self.interference_fit.calculate_peak_idx(data[0])
 
         if not self.started_interference_event.is_set():
             self.started_interference_event.set()
