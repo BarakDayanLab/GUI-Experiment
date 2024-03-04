@@ -25,7 +25,8 @@ class InterferenceFit:
         data /= data.max()
         return data
 
-    def enhance_peaks(self, data):
+    @staticmethod
+    def enhance_peaks(data):
         second_derivative = -np.pad(np.diff(np.diff(data)), 1)
         second_derivative -= np.min(second_derivative)
         second_derivative /= np.max(second_derivative)

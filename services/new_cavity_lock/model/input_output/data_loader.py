@@ -1,4 +1,6 @@
-from .scope_connection import Scope, FakeScope
+import os
+import glob
+from services.new_cavity_lock.model.input_output.scope_connection import Scope, FakeScope
 from functions.RedPitayaWebsocket import Redpitaya
 from threading import Thread
 import numpy as np
@@ -48,6 +50,80 @@ class ScopeDataLoader(DataLoader):
             except Exception as e:
                 print(e)
                 time.sleep(self.wait_time)
+
+
+class DataLoaderFolder(DataLoader):
+    def __init__(self, folder_path, loader_type, wait_time=0.4):
+        super().__init__()
+        self.folder_path = folder_path
+        self.loader_type = loader_type
+        self.wait_time = wait_time
+
+        if loader_type == "resonance":
+            self.transmission_files = glob.glob(os.path.join(self.folder_path, "*cavity*.npy"))
+            self.rubidium_files = glob.glob(os.path.join(self.folder_path, "*rubidium*.npy"))
+        elif loader_type == "interference":
+            self.interference_files = glob.glob(os.path.join(self.folder_path, "*interference*.npy"))
+        self.idx = 0
+
+    def load_data(self):
+        while not self.is_stopped:
+            if self.loader_type == "resonance":
+                transmission_data = np.load(self.transmission_files[self.idx])
+                rubidium_data = np.load(self.rubidium_files[self.idx])
+                data = np.array([rubidium_data, transmission_data])
+                self.on_data_callback(data)
+                self.idx += 1
+                if self.idx == len(self.transmission_files):
+                    self.idx = 0
+            elif self.loader_type == "interference":
+                if len(self.interference_files) == 0:
+                    return
+                interference_data = np.load(self.interference_files[self.idx])
+                data = np.array([interference_data])
+                self.on_data_callback(data)
+                self.idx += 1
+                if self.idx == len(self.interference_files):
+                    self.idx = 0
+
+            time.sleep(self.wait_time)
+
+
+class DataLoaderFolderTemp(DataLoader):
+    def __init__(self, folder_path, loader_type, wait_time=0.4):
+        super().__init__()
+        self.folder_path = folder_path
+        self.loader_type = loader_type
+        self.wait_time = wait_time
+
+        if loader_type == "resonance":
+            self.transmission_files = np.load(os.path.join("recorded_data", "transmission.npy"))
+            self.rubidium_files = np.load(os.path.join("recorded_data", "rubidium.npy"))
+        elif loader_type == "interference":
+            self.interference_files = np.load(os.path.join("recorded_data", "interference.npy"))
+        self.idx = 0
+
+    def load_data(self):
+        while not self.is_stopped:
+            if self.loader_type == "resonance":
+                transmission_data = self.transmission_files[self.idx]
+                rubidium_data = self.rubidium_files[self.idx]
+                data = np.array([rubidium_data, transmission_data])
+                self.on_data_callback(data)
+                self.idx += 1
+                if self.idx == len(self.transmission_files):
+                    self.idx = 0
+            elif self.loader_type == "interference":
+                if len(self.interference_files) == 0:
+                    return
+                interference_data = self.interference_files[self.idx]
+                data = np.array([interference_data])
+                self.on_data_callback(data)
+                self.idx += 1
+                if self.idx == len(self.interference_files):
+                    self.idx = 0
+
+            time.sleep(self.wait_time)
 
 
 class DataLoaderRedPitaya(DataLoader):

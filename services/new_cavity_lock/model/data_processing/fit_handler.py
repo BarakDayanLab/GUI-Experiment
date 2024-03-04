@@ -1,22 +1,30 @@
-import numpy as np
 from services.resonance_fit import ResonanceFit, CavityKex
-from .interference import InterferenceFit
-from .data_loader import DataLoaderRedPitaya
+from services.new_cavity_lock.model.data_processing.interference import InterferenceFit
+from services.new_cavity_lock.model.input_output.data_loader import DataLoaderRedPitaya, DataLoaderFolderTemp
 from threading import Event, Lock
-from .utilities import use_lock
+from services.new_cavity_lock.model.utilities import use_lock
 
 
-class ScopeHandler:
-    def __init__(self, on_fit_callback):
+class FitHandler:
+    def __init__(self, on_fit_callback, playback_path=None):
         self.on_fit_callback = on_fit_callback
 
-        self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
-        self.resonance_fit_data_loader.on_data_callback = self.on_resonance_data
+        if playback_path is not None:
+            self.resonance_fit_data_loader = DataLoaderFolderTemp(playback_path, "resonance")
+            self.resonance_fit_data_loader.on_data_callback = self.on_resonance_data
+
+            self.interference_data_loader = DataLoaderFolderTemp(playback_path, "interference")
+            self.interference_data_loader.on_data_callback = self.on_interference_data
+        else:
+            self.resonance_fit_data_loader = DataLoaderRedPitaya(host="rp-ffffb4.local")
+            self.resonance_fit_data_loader.on_data_callback = self.on_resonance_data
+
+            self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffff3e.local")
+            self.interference_data_loader.on_data_callback = self.on_interference_data
+
         cavity = CavityKex(k_i=0, h=0)
         self.resonance_fit = ResonanceFit(cavity)
 
-        self.interference_data_loader = DataLoaderRedPitaya(host="rp-ffff3e.local")
-        self.interference_data_loader.on_data_callback = self.on_interference_data
         self.interference_fit = InterferenceFit()
 
         self.started_resonance_fit_event = Event()
@@ -60,11 +68,9 @@ class ScopeHandler:
         if data[1].std() >= 6e-3:
             self.last_fit_success = self.resonance_fit.fit_data()
             if self.last_fit_success:
-                if len(self.resonance_fit.fit_params_history) < 2 or \
-                        np.abs(self.resonance_fit.fit_params_history[-1, -1] - self.resonance_fit.fit_params_history[
-                            -2, -1]) < 5:
-                    self.on_fit_callback()
+                self.on_fit_callback()
         else:
+            self.resonance_fit.zero_voltage = data[1].mean()
             self.last_fit_success = False
 
         if not self.started_resonance_fit_event.is_set():
@@ -106,6 +112,9 @@ class ScopeHandler:
     def get_rubidium_lines(self):
         rubidium_lines = self.resonance_fit.rubidium_lines.data.copy()
         return rubidium_lines
+
+    def get_interference_data(self):
+        return self.interference_fit.data
 
     def get_rubidium_peaks(self):
         return self.resonance_fit.rubidium_peaks.copy()

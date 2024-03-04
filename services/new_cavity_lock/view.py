@@ -461,16 +461,16 @@ class ResonanceFitControlPanel(QtWidgets.QWidget):
         self.layout = QtWidgets.QGridLayout(self)
 
         # ------------------ ROW 0 ------------------ #
-        self.pid_controls_title = QtWidgets.QLabel("PID Controls", self)
+        self.pid_controls_title = QtWidgets.QLabel("Resonance Parameters", self)
         self.pid_controls_title.setFont(QtGui.QFont("Helvetica", 16, QtGui.QFont.Weight.Bold))
         self.pid_controls_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout.addWidget(self.pid_controls_title, 0, 0, 1, 2)
 
         # ------------------ ROW 1 ------------------ #
-        self.kappa_i_label = QtWidgets.QLabel("k_{ex}:", self)
+        self.kappa_i_label = QtWidgets.QLabel("kappa_i:", self)
         self.layout.addWidget(self.kappa_i_label, 1, 0)
         self.kappa_i_control = QtWidgets.QDoubleSpinBox(self)
-        self.kappa_i_control.setRange(0, 10)
+        self.kappa_i_control.setRange(0, 20)
         self.kappa_i_control.setSingleStep(0.1)
         self.layout.addWidget(self.kappa_i_control, 1, 1)
 

@@ -1,23 +1,24 @@
 from .model import CavityLockModel
-from services.new_cavity_lock.model.data_loader import DataLoaderRedPitaya
+from services.new_cavity_lock.model.input_output.data_loader import DataLoaderRedPitaya
 import sys
 from .view import App
 
 
 class CavityLockController:
-    def __init__(self, save, use_socket):
-        self.app = App(self)
-        self.model = CavityLockModel(save=save, use_socket=use_socket)
-
-        self.bind_general_controls()
-        self.bind_pid_controls()
-        self.bind_hmp_controls()
-        self.bind_resonance_fit_controls()
+    def __init__(self, save, use_socket, playback_path=None):
+        self.app = None
+        self.model = CavityLockModel(save=save, use_socket=use_socket, playback_path=playback_path)
 
     # ------------------ RUN ------------------ #
 
     def start(self):
         self.model.start(self)
+        self.app = App(self)
+        self.bind_general_controls()
+        self.bind_pid_controls()
+        self.bind_hmp_controls()
+        self.bind_resonance_fit_controls()
+
         self.update_all_devices()
         self.calibrate_peaks_params()
 

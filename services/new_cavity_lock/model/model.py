@@ -1,33 +1,30 @@
 import os
 import time
 import numpy as np
-from services.new_cavity_lock.model.socket_client import SocketClient
+from services.new_cavity_lock.model.input_output.socket_client import SocketClient
 from simple_pid import PID
 from threading import Lock
 from functions.HMP4040Control import HMP4040Visa
 from services.new_cavity_lock.config import default_parameters, parameter_bounds, general as cfg
-from .oscilloscope_handler import ScopeHandler
-from .utilities import use_lock, SetInterval
+from services.new_cavity_lock.model.data_processing.fit_handler import FitHandler
+from services.new_cavity_lock.model.utilities import use_lock, SetInterval
 
 
-class CavityLockModel(ScopeHandler):
-    def __init__(self, save=False, use_socket=False):
-        super().__init__(self.update_pid)
+class CavityLockModel(FitHandler):
+    def __init__(self, save=False, use_socket=False, playback_path=None):
+        super().__init__(self.update_pid, playback_path)
         self.save = save
         self.use_socket = use_socket
 
-        try:
-            # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
-            self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
-        except Exception as e:
-            print(e)
+        # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
+        self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
+        if not hasattr(self.hmp4040, 'inst'):
             self.hmp4040 = None
 
         self.pid = PID(0, 0, 0, setpoint=0, sample_time=0.1, output_limits=parameter_bounds.HMP_LASER_CURRENT_BOUNDS,
                        auto_mode=False, starting_output=parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0])
 
         self.controller = None
-        self.last_fit_success = False
         self.lock = Lock()
 
         self.save_interval = SetInterval(cfg.SAVE_INTERVAL, self.save_spectrum)
@@ -182,13 +179,18 @@ class CavityLockModel(ScopeHandler):
 
         rubidium_filename = f"{date}-{hours}_rubidium_spectrum.npy"
         rubidium_path = os.path.join(folder_path, rubidium_filename)
-        return transmission_path, rubidium_path
+
+        interference_filename = f"{date}-{hours}_interference_spectrum.npy"
+        interference_path = os.path.join(folder_path, interference_filename)
+        return transmission_path, rubidium_path, interference_path
 
     @use_lock()
     def save_spectrum(self):
         if not self.pid.auto_mode:
             return
 
-        transmission_path, rubidium_path = self.get_save_paths()
+        transmission_path, rubidium_path, interference_path = self.get_save_paths()
         np.save(transmission_path, self.get_transmission_spectrum())
         np.save(rubidium_path, self.get_rubidium_lines())
+        np.save(interference_path, self.get_interference_data())
+

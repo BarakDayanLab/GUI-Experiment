@@ -69,13 +69,19 @@ class ResonanceFit:
         return True
 
     def calculate_relevant_area(self):
-        self.current_relevant_area = (self.cavity.x_0 - 90 < self.x_axis) * (self.x_axis < self.cavity.x_0 + 90)
+        self.current_relevant_area = (self.cavity.x_0 - 1e3 < self.x_axis) * (self.x_axis < self.cavity.x_0 + 1e3)
         self.relevant_x_axis = self.x_axis[self.current_relevant_area]
 
     # ------------------ DATA PROCESSING ------------------ #
-    def normalize_data(self, data):
+    def normalize_resonance_data(self, data):
         shift = data.min() if self.zero_voltage is None else self.zero_voltage
         data -= shift
+        data /= data.max()
+        return data
+
+    @staticmethod
+    def normalize_rubidium_data(data):
+        data -= data.min()
         data /= data.max()
         return data
 
@@ -126,8 +132,8 @@ class ResonanceFit:
     # ------------------ READ DATA ------------------ #
 
     def set_data(self, rubidium_lines, transmission_spectrum):
-        self.rubidium_lines.data = self.normalize_data(rubidium_lines)
-        self.cavity.transmission_spectrum = self.normalize_data(transmission_spectrum)
+        self.rubidium_lines.data = self.normalize_rubidium_data(rubidium_lines)
+        self.cavity.transmission_spectrum = self.normalize_resonance_data(transmission_spectrum)
         if len(self.x_axis) != self.rubidium_lines.num_points:
             self.x_axis = np.arange(self.rubidium_lines.num_points)
 
