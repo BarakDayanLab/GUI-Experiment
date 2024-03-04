@@ -2,12 +2,14 @@ from .model import CavityLockModel
 from services.new_cavity_lock.model.input_output.data_loader import DataLoaderRedPitaya
 import sys
 from .view import App
+from threading import Event
 
 
 class CavityLockController:
     def __init__(self, save, use_socket, playback_path=None):
         self.app = None
         self.model = CavityLockModel(save=save, use_socket=use_socket, playback_path=playback_path)
+        self.started = Event()
 
     # ------------------ RUN ------------------ #
 
@@ -23,6 +25,7 @@ class CavityLockController:
         self.calibrate_peaks_params()
 
         self.app.main_window.showMaximized()
+        self.started.set()
         sys.exit(self.app.exec())
 
     def stop(self, event=None):

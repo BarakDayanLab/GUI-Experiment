@@ -154,6 +154,7 @@ class CavityLockModel(FitHandler):
         else:
             print("connection to socket server lost. Trying to reconnect...")
 
+        self.controller.started.wait()
         self.controller.update_socket_status(is_connected)
 
     @use_lock()

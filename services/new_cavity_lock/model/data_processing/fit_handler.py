@@ -97,13 +97,12 @@ class FitHandler:
         current_fit_value = self.resonance_fit.cavity.current_fit_value
         title = f"{main_parameter.upper()}: {current_fit_value:.2f}, Lock Error: {lock_error:.2f} MHz"
 
-        relevant_x_axis = self.resonance_fit.relevant_x_axis.copy()
         rubidium_peaks = self.resonance_fit.rubidium_peaks.copy()
         selected_peak = self.resonance_fit.selected_peak.copy()
         lorentzian_center = self.resonance_fit.lorentzian_center.copy()
         transmission_fit = self.resonance_fit.transmission_fit.copy()
 
-        fit = (relevant_x_axis, rubidium_peaks, selected_peak, lorentzian_center, transmission_fit, title)
+        fit = (x_axis, rubidium_peaks, selected_peak, lorentzian_center, transmission_fit, title)
         return data, fit
 
     def get_transmission_spectrum(self):

@@ -15,8 +15,6 @@ class ResonanceFit:
         self.zero_voltage = None
 
         self.x_axis = np.array([])
-        self.current_relevant_area = None
-        self.relevant_x_axis = None
 
         self.fit_params_history = np.empty((0, len(self.cavity.fit_parameters) + 1))
 
@@ -42,17 +40,13 @@ class ResonanceFit:
 
     @property
     def transmission_fit(self):
-        return self.cavity.transmission_spectrum_func(self.relevant_x_axis)
+        return self.cavity.transmission_spectrum_func(self.x_axis)
 
     @property
     def lorentzian_center(self):
         return np.array([self.cavity.x_0, self.cavity.transmission_spectrum_func(self.cavity.x_0)])
 
     # ------------------ CALIBRATIONS ------------------ #
-
-    def set_x_axis(self, rubidium_lines):
-        rubidium_lines = self.normalize_data(rubidium_lines)
-        self.x_axis = np.arange(len(rubidium_lines))
 
     def calibrate_peaks_params(self, num_idx_in_peak):
         self.w_len = num_idx_in_peak * 1.1
@@ -67,10 +61,6 @@ class ResonanceFit:
             return False
         self.x_axis = np.arange(self.rubidium_lines.num_points) * self.rubidium_lines.idx_to_freq_factor()
         return True
-
-    def calculate_relevant_area(self):
-        self.current_relevant_area = (self.cavity.x_0 - 1e3 < self.x_axis) * (self.x_axis < self.cavity.x_0 + 1e3)
-        self.relevant_x_axis = self.x_axis[self.current_relevant_area]
 
     # ------------------ DATA PROCESSING ------------------ #
     def normalize_resonance_data(self, data):
@@ -108,13 +98,13 @@ class ResonanceFit:
 
     def fit_transmission_spectrum(self) -> bool:
         self.cavity.x_0 = self.x_axis[self.cavity.transmission_spectrum.argmin()]
-        self.calculate_relevant_area()
+        # self.calculate_relevant_area()
 
         try:
             # noinspection PyTupleAssignmentBalance
             optimal_parameters, covariance = curve_fit(self.cavity.fit,
-                                                       self.relevant_x_axis,
-                                                       self.cavity.transmission_spectrum[self.current_relevant_area],
+                                                       self.x_axis,
+                                                       self.cavity.transmission_spectrum,
                                                        p0=self.cavity.get_fit_parameters(),
                                                        bounds=self.cavity.bounds)
         except Exception as err:
@@ -122,8 +112,8 @@ class ResonanceFit:
             return False
 
         self.cavity.set_fit_parameters(*optimal_parameters)
-        score = self.r2_score(self.cavity.transmission_spectrum[self.current_relevant_area],
-                              self.cavity.transmission_spectrum_func(self.relevant_x_axis))
+        score = self.r2_score(self.cavity.transmission_spectrum,
+                              self.cavity.transmission_spectrum_func(self.x_axis))
         if score < 0.6:
             return False
 
