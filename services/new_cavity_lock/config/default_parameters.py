@@ -1,7 +1,14 @@
 
 # -------------------- RESONANCE FIT -------------------- #
-K_I = 11.8
-H = 1
+K_I = 7
+H = 6
+
+
+# -------------------- RUBIDIUM LINES PARAMETERS -------------------- #
+FREQ_DIFF = 156.947
+NUM_PICKS = 6
+# FREQ_DIFF = 266.65
+# NUM_PICKS = 3
 
 # -------------------- RED PITAYA PARAMETERS -------------------- #
 CH1_OFFSET = 0.0

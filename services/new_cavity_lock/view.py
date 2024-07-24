@@ -478,7 +478,7 @@ class ResonanceFitControlPanel(QtWidgets.QWidget):
         self.h_label = QtWidgets.QLabel("h:", self)
         self.layout.addWidget(self.h_label, 2, 0)
         self.h_control = QtWidgets.QDoubleSpinBox(self)
-        self.h_control.setRange(0, 10)
+        self.h_control.setRange(0, 20)
         self.h_control.setSingleStep(0.1)
         self.layout.addWidget(self.h_control, 2, 1)
 

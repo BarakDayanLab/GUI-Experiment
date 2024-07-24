@@ -15,6 +15,7 @@ class CavityLockModel(FitHandler):
         super().__init__(self.update_pid, playback_path)
         self.save = save
         self.use_socket = use_socket
+        self.save_succeeded = False  # Indicator to be sent to experiment code
 
         # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
         self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
@@ -162,7 +163,7 @@ class CavityLockModel(FitHandler):
         if not self.last_fit_success:
             return
         k_ex, lock_error, interference_error = self.get_k_ex(), self.get_lock_error(), self.get_interference_error()
-        fit_dict = dict(k_ex=k_ex, lock_error=lock_error, interference_error=interference_error)
+        fit_dict = dict(k_ex=k_ex, lock_error=lock_error, interference_error=interference_error, save_succeeded=self.save_succeeded)
         self.socket.send_data(fit_dict)
 
     # ------------------ SAVE DATA ------------------ #
@@ -190,8 +191,14 @@ class CavityLockModel(FitHandler):
         if not self.pid.auto_mode:
             return
 
-        transmission_path, rubidium_path, interference_path = self.get_save_paths()
-        np.save(transmission_path, self.get_transmission_spectrum())
-        np.save(rubidium_path, self.get_rubidium_lines())
-        np.save(interference_path, self.get_interference_data())
+        try:
+            transmission_path, rubidium_path, interference_path = self.get_save_paths()
+
+            np.save(transmission_path, self.get_transmission_spectrum())
+            np.save(rubidium_path, self.get_rubidium_lines())
+            np.save(interference_path, self.get_interference_data())
+            self.save_succeeded = True
+        except Exception as err:
+            print(f'Failed to save spectrum: {err}')
+            self.save_succeeded = False
 

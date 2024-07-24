@@ -10,6 +10,8 @@ class RubidiumLines:
     data: np.ndarray = None
     peaks_idx: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
     peaks_time: np.ndarray = None
+    freq_diff: float = 156.947  # default frequency difference energy levels
+    num_picks: float = 6
 
     @property
     def num_points(self):
@@ -20,7 +22,7 @@ class RubidiumLines:
         return len(self.peaks_idx)
 
     def idx_to_freq_factor(self):
-        return (156.947 / 2) / (self.peaks_idx[-1] - self.peaks_idx[-2])
+        return (self.freq_diff / 2) / (self.peaks_idx[-1] - self.peaks_idx[-2])
 
     def time_to_freq_factor(self):
         return (156.947 / 2) / (self.peaks_time[-1] - self.peaks_time[-2])
@@ -41,7 +43,7 @@ class Cavity:
         self.m = 0
         self.b = 0
 
-        self.base_bounds = [(-np.inf, -0.1, -np.inf, -np.inf), (np.inf, 0, np.inf, np.inf)]
+        self.base_bounds = [[-np.inf, -0.1, -np.inf, -np.inf], [np.inf, 0, np.inf, np.inf]]
         self.bounds = [bounds[0] + self.base_bounds[0], bounds[1] + self.base_bounds[1]]
 
     @property
@@ -67,6 +69,8 @@ class Cavity:
         pass
 
     def fit(self, x_detuning, *args):
+        self.base_bounds[0][0] = x_detuning[0]
+        self.base_bounds[1][0] = x_detuning[-1]
         self.set_fit_parameters(*args)
         return self.transmission_spectrum_func(x_detuning)
 
@@ -80,7 +84,7 @@ class Cavity:
 
 class CavityKex(Cavity):
     def __init__(self, k_i: float = 0, h: float = 0):
-        bounds = [(0,), (100,)]
+        bounds = [[0], [100]]
         super().__init__("k_ex", ["k_ex"], bounds)
         self.k_i = k_i
         self.h = h
