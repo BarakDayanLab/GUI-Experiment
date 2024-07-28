@@ -11,7 +11,7 @@ class RubidiumLines:
     peaks_idx: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
     peaks_time: np.ndarray = None
     freq_diff: float = 156.947  # default frequency difference energy levels
-    num_picks: float = 6
+    expected_peaks: float = 6
 
     @property
     def num_points(self):

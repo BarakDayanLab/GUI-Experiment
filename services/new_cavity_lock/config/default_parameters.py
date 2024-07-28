@@ -5,10 +5,10 @@ H = 6
 
 
 # -------------------- RUBIDIUM LINES PARAMETERS -------------------- #
-FREQ_DIFF = 156.947
-NUM_PICKS = 6
-# FREQ_DIFF = 266.65
-# NUM_PICKS = 3
+# FREQ_DIFF = 156.947
+# NUM_PICKS = 6
+FREQ_DIFF = 266.65
+NUM_PEAKS = 4
 
 # -------------------- RED PITAYA PARAMETERS -------------------- #
 CH1_OFFSET = 0.0

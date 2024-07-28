@@ -6,7 +6,7 @@ from scipy.signal import butter, filtfilt
 
 
 class ResonanceFit:
-    def __init__(self, cavity, rubidium_lines):
+    def __init__(self, cavity, rubidium_lines: RubidiumLines):
         self.cavity = cavity
         self.rubidium_lines = rubidium_lines
 
@@ -57,7 +57,7 @@ class ResonanceFit:
         enhanced_data = self.enhance_peaks(self.rubidium_lines.data)
         self.rubidium_lines.peaks_idx, _ = find_peaks(enhanced_data, prominence=self.prominence,
                                                       wlen=self.w_len, distance=self.distance)
-        if self.rubidium_lines.num_peaks != self.rubidium_lines.num_peaks:
+        if self.rubidium_lines.num_peaks != self.rubidium_lines.expected_peaks:
             return False
         self.x_axis = np.arange(self.rubidium_lines.num_points) * self.rubidium_lines.idx_to_freq_factor()
         return True

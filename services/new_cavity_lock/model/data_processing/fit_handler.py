@@ -3,7 +3,7 @@ from services.new_cavity_lock.model.data_processing.interference import Interfer
 from services.new_cavity_lock.model.input_output.data_loader import DataLoaderRedPitaya, DataLoaderFolderTemp
 from threading import Event, Lock
 from services.new_cavity_lock.model.utilities import use_lock
-from services.new_cavity_lock.config.default_parameters import FREQ_DIFF, NUM_PICKS
+from services.new_cavity_lock.config.default_parameters import FREQ_DIFF, NUM_PEAKS
 
 
 class FitHandler:
@@ -24,7 +24,7 @@ class FitHandler:
             self.interference_data_loader.on_data_callback = self.on_interference_data
 
         cavity = CavityKex(k_i=0, h=0)
-        rubidium_lines = RubidiumLines(freq_diff=FREQ_DIFF, num_picks=NUM_PICKS)
+        rubidium_lines = RubidiumLines(freq_diff=FREQ_DIFF, expected_peaks=NUM_PEAKS)
         self.resonance_fit = ResonanceFit(cavity, rubidium_lines)
 
         self.interference_fit = InterferenceFit()
