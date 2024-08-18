@@ -16,13 +16,16 @@ class CavityLockModel(FitHandler):
         self.save = save
         self.use_socket = use_socket
         self.save_succeeded = False  # Indicator to be sent to experiment code
+        self.timer = 0
 
         # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
         self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
         if not hasattr(self.hmp4040, 'inst'):
             self.hmp4040 = None
 
-        self.pid = PID(0, 0, 0, setpoint=0, sample_time=0.1, output_limits=parameter_bounds.HMP_LASER_CURRENT_BOUNDS,
+        # Define min/max limits a bit "wider" - so if we see PID returning the laser limits, we know to "tick" the Halogen
+        extended_bounds = (parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]-0.01, parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]+0.01)
+        self.pid = PID(0, 0, 0, setpoint=0, sample_time=0.1, output_limits=extended_bounds,
                        auto_mode=False, starting_output=parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0])
 
         self.controller = None
@@ -78,6 +81,30 @@ class CavityLockModel(FitHandler):
         output = self.pid(lock_error)
         if not self.pid.auto_mode:
             return
+
+        direction = 0
+        if output < parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]:
+            direction = -1
+        elif output > parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]:
+            direction = 1
+
+        if direction != 0:
+            self.timer += 1
+            self.timer2 = time.time()
+        else:
+            self.timer = 0
+            self.timer2 = 0
+
+        # If we are running for over 5 cycles where PID requires to fix Laser, than tick the Halogen
+        if self.timer > 5:
+            new_halogen_voltage = self.get_halogen_voltage()
+            new_halogen_voltage += (direction * 0.1)
+            # or - decrement
+            self.set_halogen_voltage(new_halogen_voltage)
+            self.timer = 0
+            self.controller.view_get_halogen_voltage()
+            return
+
         self.set_laser_current(output)
         self.controller.view_get_laser_current()
 
