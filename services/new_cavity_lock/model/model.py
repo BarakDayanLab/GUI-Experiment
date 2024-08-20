@@ -17,6 +17,7 @@ class CavityLockModel(FitHandler):
         self.use_socket = use_socket
         self.save_succeeded = False  # Indicator to be sent to experiment code
         self.timer = 0
+        self.output = (parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0] + parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1])/2
 
         # The number after the ASRL specifies the COM port where the Hameg is connected, ('ASRL6::INSTR')
         self.hmp4040 = HMP4040Visa(port='ASRL4::INSTR')
@@ -81,32 +82,66 @@ class CavityLockModel(FitHandler):
         output = self.pid(lock_error)
         if not self.pid.auto_mode:
             return
+        self.set_laser_current(output)
+        self.controller.view_get_laser_current()
+
+    def update_pid_with_halogen(self):
+        lock_error = self.get_lock_error()
+
+        HALOGEN_TICK = 0.2
+        TTT = 300
+
+        self.prev_output = self.output
+        self.output = self.pid(lock_error)
+        if not self.pid.auto_mode:
+            return
+
+        if True:
+            laser_current = self.get_laser_current()
+            delta = abs(laser_current - self.output)
+            if delta > 0.1:
+                print(f'- Big delta! curr = {laser_current}, new = {self.output}. Delta = {delta}')
+                self.output = (laser_current + self.output)/2
 
         direction = 0
-        if output < parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]:
+        if self.output < parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]:
             direction = -1
-        elif output > parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]:
+            self.set_laser_current(parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0])
+            self.controller.view_get_laser_current()
+        elif self.output > parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]:
             direction = 1
+            self.set_laser_current(parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1])
+            self.controller.view_get_laser_current()
 
         if direction != 0:
             self.timer += 1
             self.timer2 = time.time()
         else:
+            if self.timer > 0:
+                print(f'*** timer is larger than zero, yet asked to fix laser. output = {self.output}.')
+
             self.timer = 0
             self.timer2 = 0
 
+        print(f'timer = {self.timer}')
+
         # If we are running for over 5 cycles where PID requires to fix Laser, than tick the Halogen
-        if self.timer > 5:
+        if self.timer >= TTT:
             new_halogen_voltage = self.get_halogen_voltage()
-            new_halogen_voltage += (direction * 0.1)
-            # or - decrement
-            self.set_halogen_voltage(new_halogen_voltage)
+            new_halogen_voltage += (direction * HALOGEN_TICK)
+            # Fix the halogen if we're within its range:
+            start, end = parameter_bounds.HMP_HALOGEN_VOLTAGE_BOUNDS
+            if new_halogen_voltage >= start and new_halogen_voltage <= end:
+                self.set_halogen_voltage(new_halogen_voltage)
+                self.controller.view_get_halogen_voltage()
+            else:
+                pass
             self.timer = 0
-            self.controller.view_get_halogen_voltage()
             return
 
-        self.set_laser_current(output)
-        self.controller.view_get_laser_current()
+        if direction == 0:
+            self.set_laser_current(self.output)
+            self.controller.view_get_laser_current()
 
     @use_lock()
     def toggle_pid_lock(self, current_value):

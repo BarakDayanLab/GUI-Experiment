@@ -46,6 +46,21 @@ class SocketClient:
         if self.stop_thread.is_set():
             return
 
+        while not self.connected:
+            try:
+                self.socket.connect((self.ip, self.port))
+                self.connection_callback(True)
+                self.connected = True
+            except OSError as e:
+                print(f'Attempted to connect. Error: {e}')
+                time.sleep(1)
+                self.reinitialize_socket()
+        return
+
+    def connect_socket_DEP(self):
+        if self.stop_thread.is_set():
+            return
+
         try:
             self.socket.connect((self.ip, self.port))
             self.connection_callback(True)
