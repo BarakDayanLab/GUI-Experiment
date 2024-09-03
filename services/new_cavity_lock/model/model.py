@@ -25,7 +25,8 @@ class CavityLockModel(FitHandler):
             self.hmp4040 = None
 
         # Define min/max limits a bit "wider" - so if we see PID returning the laser limits, we know to "tick" the Halogen
-        extended_bounds = (parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]-0.01, parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]+0.01)
+        #extended_bounds = (parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0]-0.01, parameter_bounds.HMP_LASER_CURRENT_BOUNDS[1]+0.01)
+        extended_bounds = parameter_bounds.HMP_LASER_CURRENT_BOUNDS
         self.pid = PID(0, 0, 0, setpoint=0, sample_time=0.1, output_limits=extended_bounds,
                        auto_mode=False, starting_output=parameter_bounds.HMP_LASER_CURRENT_BOUNDS[0])
 
